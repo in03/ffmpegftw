@@ -29,7 +29,7 @@ The command is the point. The REPL was the intent. Truth is, that even as a capa
 
 ffmpeg usage is often very much a process of running many different *almost right* commands, and altering the input options and flags and varying them until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later.
 
-It is often the case that I will spend a lot of time learning how (and how now) to accomplish some specific thing , and then *never* need to do that exact thing again. 
+It is often the case that I will spend a lot of time learning how (and how not) to accomplish some specific thing , and then *never* need to do that exact thing again. 
 
 So, if I am honest, I will admit that *every* ffmpeg session that accomplishes anything useful or meaningful, is already an exercise in up-arrow, command-history editing, and evolving mutating things you know how to accomplish, until you eventually arrive at a way to accomplish the thing you set out to do.  So, if I ackowledge that is true, then using a REPL for ffmpeg that is often correct, often nearly correct,  learning and changing tactics throughout the process.
 
