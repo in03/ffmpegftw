@@ -44,7 +44,7 @@ With the updates to this branch, the default system prompt could likely be a hin
 
 ---
 
-## Example
+## Examples
 
 ```bash
 $ wtff "convert test_pattern.mp4 to a gif"
@@ -98,7 +98,7 @@ This is intentionally boring and predictable.
 
 ----
 
-Bt default wtffmpeg's REPL retains conbersational context, as well as command history, but you can control or disable tthat.
+Bt default wtffmpeg's REPL retains conversational context, as well as command history, but you can control or disable tthat.
 
 ```
 wtff --context-turns N
@@ -108,9 +108,9 @@ where N is a number greater than or equal to zero that represents the number of 
 ## Installation
 When random Internet user were clersly getting more excitement out of wtffmpeg than I was, I tended to accept PR's that were of little obvious value to me, but I accepted someone's initial OPENAI API integrations, and maybe more than one installation method I felt e3re unnecessary since it has had a pyproject.toml since day one and ccould be installed with then pip, pipx, or uv, and it would install a stub, in the bin or scripts directory of your system of venv Python path. One patch included a documentation change describing how to symlink wtffmpeg.py into a system path so you can access it by typing `wtff` from any command-line. That was literally a feature I shipped on day 1 via the `setuptools` innate scripts mechanism. But, as I said, these people were actually wanting to use wtffmpeg so who am I to deny them joy or explain that the feature was already there and documenteed. *shrug*
 
-But after I'm now finding auto-generated LLM video slop (it's literally just a screenshot of a browser loading the wtffmpeg browser render of README.md with a low-rent verion of a NotebookLM-style "podcast".  It's funny. And sad. But also someone qeote in a newsletter calling scottvr/wtffmpeeg "Repo of the Week". A corporate marketing/tutorial video on how to use their synthetic data and partially-automated model/prompt pairing combination and pricing tool referred kindly to wtffmpeg, and kept a browser tab to the repo open throughout the video. (Sadly, he also, showed the aforementioned silly-but-working on Phi prompt, and unsurprisingly ChatGPT could outperform the wtffmpeeg jokey prompt with one it wrote itself.)) But also... an this &was& surprising, the maker of the video actually went out of his way to acknowledge that in some cases wtffmpeg's ludicrous prompt actually worked better! Using Phi. (LOL)
+But after I'm now finding auto-generated LLM video slop (it's literally just a screenshot of a browser loading the wtffmpeg github repo browser render of README.md with a low-rent verion of a NotebookLM-style "podcast" for audio.  It's funny. And sad. But also someone wrote in a newsletter calling `scottvr/wtffmpeeg` "Repo of the Week". A corporate marketing/tutorial video on how to use their synthetic data and partially-automated model/prompt pairing combination and pricing tool referred kindly to wtffmpeg, and kept a browser tab to the repo open throughout the video. (Sadly, he also showed the aforementioned silly-but-working on Phi prompt, and unsurprisingly ChatGPT could outperform the wtffmpeg jokey prompt with one that it wrote itself.)) But also... an this *was* surprising: the maker of the video actually went out of his way to acknowledge that in some cases wtffmpeg's ludicrous prompt actually worked better! Using Phi. (LOL)
 
-But I digress. Where were we Oh yes, installation. Just do this:
+But I digress. Where were we? Oh yes, installation. Just do this:
 ```
 git clone https://github.com/scottvr/wtffmpeg.git
 cd wtffmpeg
@@ -164,7 +164,7 @@ These are just for convenience. You cannot, for example, `!chdir` and actually c
 ----
 
 # Disclaimer
-i`wtffmpeg` started as something I built to amuse myself. It accidentally became useful.
+`wtffmpeg` started as something I built to amuse myself. It accidentally became useful.
 
 It executes commands that can destroy your data if you are careless.
 Always review generated commands before running them.
