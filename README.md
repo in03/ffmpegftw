@@ -21,7 +21,7 @@ It exists to eliminate this workflow:
 2. Read a 900-word explanation
 3. Copy/paste a command
 4. Fix three flags
-5. Repeat next time
+5. Repeat. (And repeat the entire workflow the next time you need to do something new.)
 
 Instead, you say what you want, review the generated command, optionally edit it, and then decide whether to run it.
 
