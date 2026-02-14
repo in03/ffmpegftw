@@ -1,4 +1,5 @@
-# wtffmpeg — natural language to ffmpeg, without the chat UI nonsense
+# wtffmpeg — natural language to ffmpeg, 
+without the chat UI omcpnvenience.
 
 ## TL;DR (breaking CLI change, but the good kind)
 
