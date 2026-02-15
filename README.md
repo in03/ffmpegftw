@@ -24,7 +24,7 @@ It is intended to eliminate a common workflow where you:
 5. Read help/usage because the Internet strangers only got you very xlosw to what you want to do.
 6. Repeat. (And repeat the entire workflow the next time you need to do something new.)
 
-Instead, `wtffnpef` lets you say what you want, review the generated command, optionally edit it, and then decide whether to run it.
+Instead, `wtffmpeg` lets you say what you want, review the generated command, optionally edit it, and then decide whether to run it.
 
 The command is the point. The REPL was the intentded assisted cli explorer, not just a glorofoed chest sheet. The truth is, that even as a capable long-time user of ffmpeg, even when I have historically arrived at very complicated ffmpeg command-lines or piped-together chains of commands, or long batches of them intersperse throughout bash logic, there are very few things I get right every tiime. 
 
