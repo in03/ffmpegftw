@@ -6,7 +6,7 @@ A snapshot of v0.1.0 was tagged as 'alpha' from the main branch. If you don't wa
 
 - The old `-i` / “interactive mode” is now the **default**.
 - Running `wtff` with no arguments drops you straight into a REPL.
-- This is intentional. A command-line tool should behave like one.
+- This is intentional. A command-line tool should still behave like one, with the added benefit of growing historical context from LLM interaction
 
 If you previously used `wtff "some prompt"`: that still works, but now it **preloads context and then drops you into the REPL** instead of exiting immediately. If you truly want a single-shot, non-interactive invocation, there is a flag for that (see below).
 
