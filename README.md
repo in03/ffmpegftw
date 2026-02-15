@@ -16,31 +16,37 @@ If you previously used `wtff "some prompt"`: that still works, but now it **prel
 
 `wtffmpeg` is a command-line tool that uses a Large Language Model (LLM) to translate plain-English descriptions of video or audio tasks into **actual, executable `ffmpeg` commands**.
 
-It exists to eliminate this workflow:
+It is intended to eliminate a common workflow where you:
 
 1. Search Stack Overflow
-2. Read a 900-word explanation
-3. Copy/paste a command
-4. Fix three flags
-5. Repeat. (And repeat the entire workflow the next time you need to do something new.)
+2. Read a 1000-word explanation
+3. Copy/paste/typo misunderstand one pr more conflicting amswers
+5. Read help/usage because the Internet strangers only got you very xlosw to what you want to do.
+6. Repeat. (And repeat the entire workflow the next time you need to do something new.)
 
-Instead, you say what you want, review the generated command, optionally edit it, and then decide whether to run it.
+Instead, `wtffnpef` lets you say what you want, review the generated command, optionally edit it, and then decide whether to run it.
 
-The command is the point. The REPL was the intent. Truth is, that even as a capable long-time user of ffmpeg, even when I have historically arrived at very complicated ffmpeg command-lines or piped-together chains of commands, or long batches of them intersperse throughout bash logic, there are very few things I get right every tiime. 
+The command is the point. The REPL was the intentded assisted cli explorer, not just a glorofoed chest sheet. The truth is, that even as a capable long-time user of ffmpeg, even when I have historically arrived at very complicated ffmpeg command-lines or piped-together chains of commands, or long batches of them intersperse throughout bash logic, there are very few things I get right every tiime. 
 
-ffmpeg usage is often very much a process of running many different *almost right* commands, and altering the input options and flags and varying them until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later.
+ffmpeg usage is often very much a process of running many different *almost right* commands, and altering the input options and flags and varying them until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later so that presumably the learning and working will have a long term improvement towards complete ffmpeg mastery. 
 
-It is often the case that I will spend a lot of time learning how (and how not) to accomplish some specific thing , and then *never* need to do that exact thing again. 
+It is often the case that I will spend a lot of time learning how (and *how not*) to accomplish some specific task with ffmpeg, and then *never* need to do that exact thing again, so...
 
-So, if I am honest, I will admit that *every* ffmpeg session that accomplishes anything useful or meaningful, is already an exercise in up-arrow, command-history editing, and evolving command-line mutations until finallh one naturally selects itself to reproduce and pass on mysterious traits to the mext generation, Or something like it anyway.  So... if I ackowledge that as the truth, then using a REPL for ffmpeg that is actually very often at least as correct as I would be going it alone, with search engines a decreasing return on investkment of our time. amd let's be honest, the LLMs are at least *close tpo correct*  as often as I am. ffmpeg usage, for me, is already very non-deterministic. 
+So, if I am honest, I will admit that *every* ffmpeg session that accomplishes anything useful or meaningful, is already an exercise in up-arrow, command-history editing, and evolving incremental command-line mutations until finally one adaptation naturally selects to reproduce and pass on hard-won progress to the mext generation.  Or something like it anyway.  
+
+So... if I acknowledge that as the truth, then using a REPL for ffmpeg that is actually very often *at least as correct* the first time as I would have been, going it alone - with search engines a decreasing return on investment of our time. each time we inexplicably go back hoping search enshittificatiom in over and... let's be intellectually  honest: the LLMs are at least *close to correct* about as often as I am. 
+
+ffmpeg usage, for me, is already very non-deterministic. 
 ffmpeg is just enormously powerful, and its list of capabilities and ways to affect their outcome is immense.
 
-`wtffmpeg` is an auxillary tool for *using* ffmpeg. The ability of your command history and your knowledge, to couple directly in a command-line interface, while the model's responses are shaped and improved throughout your experimental session, actually makes this thing I made as a joke  into something I now haave an obligation to improve and maintain because  - approve of  it on moral grounds or not, be offended by it on intellectual grounds if you care to be -  but ffmpeg cli configurator and experimental command lab assistant is a perfect use case for an LLM.
+`wtffmpeg` is an auxillary tool for *using* ffmpeg. The ability of your command history and your knowledge, to couple directly in a command-line interface, while the model's responses are shaped and improved throughout your experimentation session of discoveries actually makes this silly thing I made as a joke  into something I now have an obligation to improve and maintain because  - wherher you approve of  it on moral grounds or not, and you can be offended by it on intellectual grounds if you care to be -  but "ffmpeg cli configurator and experimental command lab assistant" is a perfect use case for LLMs.
 
-I initially shipped `wtffmpeg` as a tiny REPL app with a huge system prompt that was actually more valuable as a cheat sheet than a generalizable input for LLMs to "be good at ffmpeg".
-It by default used Phi, and then slowly and inadvertantly through trial and error, I  arrived at system prompt was a necessary artifact of model capability constraints, and served essentially as *finetuning by transcript*. For a small local model - Phi. Because doing so was simultaneously ludicrous andact6ually undeniably useful.
+I initially shipped `wtffmpeg` as a tiny REPL app with a huge system prompt that was arguably more valuable as a cheat sheet than as a generalizable input prompt for LLMs to "be good at ffmpeg".
 
-As wtffmpeg  evolves the default system prompt could likely be a hindrance to a SoTA model. This is why it is being retired to a profile labeled "cheatsheet' in this release, along with a handful of other profiles enabled by the new `--profile <list>`, where <list> is a plain-text file pointed to by an avsolute path, or a "profile name" if you want to use a profile from youe wtffmpeg profile directory. Anyway, some (een the v0.1.0 Phi-tailored joke of a prompt) are shipped in the repo, but in the end it's just text, so you are free to use whatever you choose.
+
+By default it used Phi (locally)  and then slowly and inadvertantly through trial and error, I  arrived at system prompt as a necessary artifact of model capability constraints, and that served essentially as *finetuning by transcript*. Because doing so was simultaneously ludicrous and actually undeniably useful, I disclaimed `wtffmpeg` as "performance art".
+
+As wtffmpeg  evolves, that big ok' cheat sheet of a system prompt could actually be a hindrance when using a SoTA model. This is why it is being retired to a profile labeled "cheatsheet' in the next release, along with a handful of other profiles enabled by the new `--profile <list>`, where <list> is a plain-text file pointed to by an avsolute path, or a "profile name" if you want to use a profile from youe wtffmpeg profile directory. Anyway, some (even the v0.1.0 Phi-tailored joke) are shipped in the repo, but in the end it's just text, so you are free to use whatever you choose.
 
 ---
 
