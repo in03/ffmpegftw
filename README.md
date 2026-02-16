@@ -1,14 +1,9 @@
 ![wtffmpeg](https://scottvr.github.io/images/wtff.png)
 
-## TL;DR: Nearly breaking changes to some command-line options. It needed to be done sooner rather than later. It's for the good of us all.
+## TL;DR: Nearly-breaking changes to some command-line options. 
+- *A snapshot of v0.1.0 was tagged as 'alpha' from the main branch, if you really want the old hacky behaviot** 
 
-A snapshot of v0.1.0 was tagged as 'alpha' from the main branch. If you don't want to switch to the current (as of Feb 2026) beta release, you can pull that 'alpha' tagged release, or download tarballs or zips of it from github.
-
-- The old `-i` / “interactive mode” is now the **default**.
-- Running `wtff` with no arguments drops you straight into a REPL.
-- This is intentional. A command-line tool should still behave like one, with the added benefit of growing historical context from LLM interaction
-
-If you previously used `wtff "some prompt"`: that still works, but now it **preloads context and then drops you into the REPL** instead of exiting immediately. If you truly want a single-shot, non-interactive invocation, there is a flag for that (see below).
+- If you previously used `wtff "some prompt"`: that still works, but now it **preloads context and then drops you into the REPL** instead of exiting immediately. If you truly want a single-shot, non-interactive invocation, there is a flag for that (see below).
 
 ---
 
