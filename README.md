@@ -29,9 +29,9 @@ video container, using points when
 audio is below some threshold for
 more than 100 milliseconds"
 ```
-and have the LLM know what "just like that" means, because it knows what command you are referring to,is quite powerful. 
+and to have the LLM know what "just like that" means, because it knows what command you are referring to, is quite powerful. 
 
-The truth is, that even as a capable long-time user of ffmpeg, even when I have historically arrived at very complicated ffmpeg command-lines or piped-together chains of commands, or long batches of them intersperse throughout bash logic, there are very few things I get right every tiime. 
+The truth is, that even as a capable long-time user of ffmpeg, even when I have historically arrived at very complicated ffmpeg command-lines or piped-together chains of commands, or long batches of them interspersed throughout bash logic, there are very few things I get right every tiime. 
 
 ffmpeg usage is often very much a process of running many different *almost right* commands, and altering the input options and flags and varying them until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later so that presumably the learning and working will have a long term improvement towards complete ffmpeg mastery. 
 
