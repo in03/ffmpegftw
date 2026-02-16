@@ -23,7 +23,11 @@ Instead, `wtffmpeg` lets you say what you want, review the generated command, op
 
 The command is the point. The REPL was intended as an **assisted cli explorer**, not just a **one-shot command guesser with a cheat sheet**. The importance of conversation history (one-sided as it may be, since wtffmpeg does not by default display anything beyond the suggested `ffmpeg` command) **should not be underestimated**; being able to do someyhing like 
 ```
-wtffmpeg> ok now just like that, but have it create chapters in the video container, using points when audio is below some threshold for more than 100 milliseconds"
+wtffmpeg> ok now just like that,
+but have it create chapters in the
+video container, using points when
+audio is below some threshold for
+more than 100 milliseconds"
 ```
 and have the LLM know what "just like that" means, because it knows what command you are referring to,is quite powerful. 
 
