@@ -1,7 +1,7 @@
 ![wtffmpeg](https://scottvr.github.io/images/wtff.png)
 
 ## TL;DR: Nearly-breaking changes to some command-line options. 
-- *A snapshot of v0.1.0 was tagged as 'alpha' from the main branch, if you really want the old hacky behaviot** 
+- *A snapshot of v0.1.0 was tagged as 'alpha' from the main branch, if you really want the old hacky behavior* 
 
 - If you previously used `wtff "some prompt"`: that still works, but now it **preloads context and then drops you into the REPL** instead of exiting immediately. If you truly want a single-shot, non-interactive invocation, there is a flag for that (see below).
 
