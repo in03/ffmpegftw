@@ -33,7 +33,9 @@ and to have the LLM know what "just like that" means, because it knows what comm
 
 The truth is, that even as a capable long-time user of ffmpeg, even when I have historically arrived at very complicated ffmpeg command-lines or piped-together chains of commands, or long batches of them interspersed throughout bash logic, there are very few things I get right every tiime. 
 
-ffmpeg usage is often very much a process of running many different *almost right* commands, and altering the input options and flags and varying them until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later so that presumably the learning and working will have a long term improvement towards complete ffmpeg mastery. 
+## some more dead-horsing about the UI and defending the LLM use case
+
+ffmpeg usage is often very much a process of running many different *almost right* commands, and altering the input options and flags and varying them until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later so that what is learned can be recalled, leading to long-term progress toward ffmpeg mastery. 
 
 It is often the case that I will spend a lot of time learning how (and *how not*) to accomplish some specific task with ffmpeg, and then *never* need to do that exact thing again, so...
 
@@ -48,12 +50,10 @@ ffmpeg is just enormously powerful, and its list of capabilities and ways to aff
 
 I initially shipped `wtffmpeg` as a tiny REPL app with a huge system prompt that was arguably more valuable as a cheat sheet than as a generalizable input prompt for LLMs to "be good at ffmpeg".
 
-
 By default it used Phi (locally)  and then slowly and inadvertantly through trial and error, I  arrived at system prompt as a necessary artifact of model capability constraints, and that served essentially as *finetuning by transcript*. Because doing so was simultaneously ludicrous and actually undeniably useful, I disclaimed `wtffmpeg` as "performance art".
 
 As wtffmpeg continues to improve as it is in active development, that big ol' cheat sheet of a system prompt could actually be a hindrance when using a SoTA model. This is why it is being retired to a profile labeled "cheatsheet' in the next release, along with a handful of other profiles enabled by the new `--profile <list>`, where <list> is a plain-text file pointed to by an avsolute path, or a "profile name" if you want to use a profile from youe wtffmpeg profile directory. Anyway, some (even the v0.1.0 Phi-tailored joke) are shipped in the repo, but in the end it's just text, so you are free to use whatever you choose.
 
----
 
 ## Examples
 
