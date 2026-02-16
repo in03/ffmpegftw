@@ -37,9 +37,9 @@ The truth is, that even as a capable long-time user of ffmpeg, even when I have 
 
 Often, complex `ffmpeg` usage is  very much a process of running many different *almost right* commands, and altering the input options and varying flags until arriving at one or more commands that will no doubt be preserved in text documents or shell scripts for the user to refer to later so that what is learned can be recalled, leading to long-term progress toward `ffmpeg` mastery. 
 
-Prior to **wtffmpeg**, it was typical for me to spend a lot of time learning how (and *how not*) to accomplish some specific task with ffmpeg, and then *never* need to do that exact thing again, so...
+Prior to **wtffmpeg**, it was typical for me to spend a lot of time learning how (and *how not*) to accomplish some specific task with ffmpeg, and then *never* need to do that exact thing again, so..?
 
-So, if I am honest, I will admit that *every* ffmpeg session that accomplishes anything useful or meaningful, is already an exercise in up-arrow, command-history editing, and evolving incremental command-line mutations until finally one adaptation naturally selects to reproduce and pass on hard-won progress to the mext generation.  Or something like it anyway.  
+So, if I am honest, I will admit that *every* ffmpeg session that accomplishes anything useful or meaningful is already an exercise in up-arrow, command-history editing, and evolving incremental command-line mutations until finally one adaptation naturally selects to reproduce and pass on hard-won progress to the mext generation.  Or something like it anyway.  
 
 So... if I acknowledge that as the truth, then using a REPL for ffmpeg that is actually very often *at least as correct* the first time as I would have been, going it alone - with search engines a decreasing return on investment of our time. each time we inexplicably go back hoping search enshittificatiom in over and... let's be intellectually  honest: the LLMs are at least *close to correct* about as often as I am. 
 
