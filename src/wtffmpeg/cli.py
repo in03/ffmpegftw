@@ -1,21 +1,11 @@
 import argparse
 import os
-
-from .llm import build_client_and_model, list_profiles, load_profile, verify_connection
-from .repl import repl, single_shot 
-from .config import AppConfig
 from pathlib import Path
 
-DEFAULT_PROFILE_NAME = "minimal"  # choose this and ship it as a built-in
-
-def _resolve_profile_spec(args) -> str:
-    # Precedence: CLI -> env -> default
-    if getattr(args, "profile", None):
-        return args.profile
-    env = os.environ.get("WTFFMPEG_PROFILE")
-    if env:
-        return env
-    return DEFAULT_PROFILE_NAME
+from .llm import build_client
+from .repl import repl, single_shot 
+from .config import AppConfig, resolve_config
+from .profiles import list_profiles, load_profile
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -43,25 +33,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--model",
         type=str,
-        default=os.environ.get("WTFFMPEG_MODEL", "gpt-oss:20b"),
+        default=None,
         help="Model to use. Defaults WTFFMPEG_MODEL then 'gpt-oss:20b'.",
     )
     p.add_argument(
         "--api-key",
         type=str,
-        default=os.environ.get("WTFFMPEG_OPENAI_API_KEY"),
-        help="OpenAI API key. Defaults WTFFMPEG_OPENAI_API_KEY.",
+        default=None,
+        help="OpenAI API key. Defaults WTFFMPEG_OPENAI_API_KEY (or none).",
     )
     p.add_argument(
         "--bearer-token",
         type=str,
-        default=os.environ.get("WTFFMPEG_BEARER_TOKEN"),
+        default=None,
         help="Bearer token. Defaults WTFFMPEG_BEARER_TOKEN.",
     )
     p.add_argument(
         "--url",
         type=str,
-        default=os.environ.get("WTFFMPEG_LLM_API_URL", "http://localhost:11434"),
+        default=None,
         help="Base URL for OpenAI-compatible API. Defaults WTFFMPEG_LLM_API_URL then http://localhost:11434",
     )
 
@@ -77,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Copy generated command to clipboard (single-shot only).",
     )
 
-    # Keep -i as no-op to avoid breaking old aliases
+    # Keep -i as NOP to avoid breaking old aliases
     p.add_argument(
         "-i", "--interactive",
         action="store_true",
@@ -97,6 +87,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     return p
 
+def _env_nonempty(name: str) -> str | None:
+    v = os.environ.get(name)
+    if v and v.strip():
+        return v.strip()
+    return None
+
 
 def main():
     parser = build_parser()
@@ -111,44 +107,19 @@ def main():
         for n in avail["builtin"]:
             print(f"  {n}")
         raise SystemExit(0)
+    
+    cfg = resolve_config(args)
+    
+    print(f"Profile: {cfg.profile.name} ({cfg.profile.path})")
 
-    profile_spec = _resolve_profile_spec(args)
-    profile = load_profile(profile_spec, args.profile_dir) 
-    if profile.source == "path":
-        print(f"Profile: {profile.name} (path)")
-    elif profile.source == "user":
-        print(f"Profile: {profile.name} (user)")
-    else:
-        print(f"Profile: {profile.name} (built-in)")
-
-    cfg = AppConfig(
-        profile=profile,
-        context_turns=args.context_turns,
-        copy=args.copy,
-        exec_=args.exec_,
-        prompt_once=args.prompt_once,
-        preload_prompt=args.prompt,  # positional prompt
-    )
-
-    target = build_client_and_model(args)
-
-    if target.base_url:
-        print(f"LLM endpoint: {target.base_url}  model: {target.model}")
-    else:
-        print(f"LLM endpoint: OpenAI  model: {target.model}")
-
-    verify_connection(target.client, target.base_url)
+    client  = build_client(cfg)
 
     if cfg.prompt_once is not None:
-        rc = single_shot(
-            cfg.prompt_once, target.client, target.model,
-            profile=cfg.profile,
-            do_copy=cfg.copy,
-            do_exec=cfg.exec_,
-        )
+        rc = single_shot(cfg.prompt_once, client, cfg.model, profile=cfg.profile,
+                         do_copy=cfg.copy, do_exec=cfg.exec_)
         raise SystemExit(rc)
 
-    repl(cfg.preload_prompt, target.client, target.model, cfg.context_turns, profile=cfg.profile)
+    repl(cfg.preload_prompt, client, cfg.model, cfg.context_turns, profile=cfg.profile)
     raise SystemExit(0)
 
 if __name__ == "__main__":

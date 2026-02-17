@@ -166,15 +166,18 @@ The reason I bring all this up is to say that absolutely I will accept contribut
 Which brings me to a PR submitted from another user fork: OpenAI API support, and exposing the configuration thereof via env:
 
 ## Configuration
+If no arguments are passed on the command-line, default values are used, *unless* environment variables are set.
 
-### Environment Variables.
-These were graciously implemented by someone in the community. Thanks.
+### Environment Variables
+These will override default values if set. (but themselves can be overridden by command-ling arguments.)
 
-- WTFFMPEG_MODEL: You can (but don't have to) specify a model name here. e.g, llama3, gpt-4o, codellama:7b
+- WTFFMPEG_MODEL: You can (but don't have to) specify a model name here. e.g, llama3, gpt-4o, codellama:7b (command-line equivalent is --model)
 - WTFFMPEG_LLM_API_URL: Base URL for a local or remote OpenAI-compatible API
-Defaults to http://localhost:11434 (Ollama)
-- WTFFMPEG_OPENAI_API_KEY: What else would this be? :-)
-- WTFFMPEG_BEARER_TOKEN: Bearer token for other OpenAI-compatible services.
+Defaults to ollama at http://localhost:11434 (command-line equivalent is --url)
+- WTFFMPEG_OPENAI_API_KEY:  (command-line equivalent is --api-key)
+- WTFFMPEG_BEARER_TOKEN: Bearer token for other OpenAI-compatible services. (cli ---bearer-token)
+- WTFFMPEG_PROFILE:  system prompt profile to use. (Defaults to `minimal`) cli is `--profile`
+- WTFFMPEG_PROFILE_DIR: Alternate directory for your system prompt profiles. (--profile-home)
 
 ### Add something about /slash ops
 Later.
