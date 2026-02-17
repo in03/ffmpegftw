@@ -1,9 +1,11 @@
 import argparse
 import os
+from pathlib import Path
 
-from wtffmpeg.llm import build_client_and_model, generate_ffmpeg_command
-from wtffmpeg.repl import repl, single_shot
-
+from .llm import build_client
+from .repl import repl, single_shot 
+from .config import AppConfig, resolve_config
+from .profiles import list_profiles, load_profile
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -31,25 +33,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--model",
         type=str,
-        default=os.environ.get("WTFFMPEG_MODEL", "gpt-oss:20b"),
+        default=None,
         help="Model to use. Defaults WTFFMPEG_MODEL then 'gpt-oss:20b'.",
     )
     p.add_argument(
         "--api-key",
         type=str,
-        default=os.environ.get("WTFFMPEG_OPENAI_API_KEY"),
-        help="OpenAI API key. Defaults WTFFMPEG_OPENAI_API_KEY.",
+        default=None,
+        help="OpenAI API key. Defaults WTFFMPEG_OPENAI_API_KEY (or none).",
     )
     p.add_argument(
         "--bearer-token",
         type=str,
-        default=os.environ.get("WTFFMPEG_BEARER_TOKEN"),
+        default=None,
         help="Bearer token. Defaults WTFFMPEG_BEARER_TOKEN.",
     )
     p.add_argument(
         "--url",
         type=str,
-        default=os.environ.get("WTFFMPEG_LLM_API_URL", "http://localhost:11434"),
+        default=None,
         help="Base URL for OpenAI-compatible API. Defaults WTFFMPEG_LLM_API_URL then http://localhost:11434",
     )
 
@@ -65,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Copy generated command to clipboard (single-shot only).",
     )
 
-    # Keep -i as no-op to avoid breaking old aliases
+    # Keep -i as NOP to avoid breaking old aliases
     p.add_argument(
         "-i", "--interactive",
         action="store_true",
@@ -79,24 +81,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="How many prior user/assistant turns to include in REPL requests (0 = stateless).",
     )
 
+    p.add_argument("--profile", type=str, default=None, help="Profile name or path")
+    p.add_argument("--list-profiles", action="store_true", help="List available profiles and exit")
+    p.add_argument("--profile-dir", type=Path, default=None, help="Override ~/.wtffmpeg/profiles")
+
     return p
+
+def _env_nonempty(name: str) -> str | None:
+    v = os.environ.get(name)
+    if v and v.strip():
+        return v.strip()
+    return None
 
 
 def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    client, model = build_client_and_model(args)
+    if args.list_profiles:
+        avail = list_profiles(getattr(args, "profile_dir", None))
+        print("User profiles:")
+        for n in avail["user"]:
+            print(f"  {n}")
+        print("Built-in profiles:")
+        for n in avail["builtin"]:
+            print(f"  {n}")
+        raise SystemExit(0)
+    
+    cfg = resolve_config(args)
+    
+    print(f"Profile: {cfg.profile.name}")
 
-    # Single-shot mode wins if explicitly requested.
-    if args.prompt_once is not None:
-        rc = single_shot(args.prompt_once, client, model, do_copy=args.copy, do_exec=args.exec_)
+    client  = build_client(cfg)
+
+    if cfg.prompt_once is not None:
+        rc = single_shot(cfg.prompt_once, client, cfg.model, profile=cfg.profile,
+                         do_copy=cfg.copy, do_exec=cfg.exec_)
         raise SystemExit(rc)
 
-    # Default: REPL, optionally with preload prompt (positional)
-    repl(args.prompt, client, model, args.context_turns)
+    repl(cfg.preload_prompt, client, cfg.model, cfg.context_turns, profile=cfg.profile)
     raise SystemExit(0)
-
 
 if __name__ == "__main__":
     main()
