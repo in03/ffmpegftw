@@ -5,13 +5,15 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Literal, Optional
 import os
+import sys
 
 try:
     from importlib import resources as importlib_resources
 except Exception:  # pragma: no cover
     import importlib_resources  # type: ignore
 
-class Profile(frozen=True):
+@dataclass(frozen=True)
+class Profile():
     name: str
     source: Literal["user", "builtin", "path"]
     path: Optional[Path]

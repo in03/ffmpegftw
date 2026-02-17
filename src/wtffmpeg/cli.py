@@ -1,9 +1,10 @@
 import argparse
 import os
 
-from .llm import build_client_and_model, generate_ffmpeg_command, list_profiles
-from .repl import repl, single_shot
+from .llm import build_client_and_model, list_profiles, load_profile
+from .repl import repl, single_shot 
 from .config import AppConfig
+from pathlib import Path
 
 DEFAULT_PROFILE_NAME = "minimal"  # choose this and ship it as a built-in
 
@@ -120,8 +121,6 @@ def main():
     else:
         print(f"Profile: {profile.name} (built-in)")
 
-
-    
     cfg = AppConfig(
         profile=profile,
         context_turns=args.context_turns,
