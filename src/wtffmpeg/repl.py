@@ -107,7 +107,25 @@ def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, 
             return
         if line.startswith("/"):
             cmd = line[1:].strip().lower()
-            if cmd in ("ping", "pingllm"):
+
+            if line in ("/help", "/h", "/?"):
+                print("Available /commands:")
+                print("  /help, /h, /? - Show this help message")
+                print("  /ping - Check LLM connectivity")
+                print("  /reset - Clear conversation history (keep system prompt)")
+                print("  /profile - Show current profile info")
+                print("  /profiles - List available profiles")
+                print("  /q|quit|/exit|/logout - Exit the REPL")
+                print(" Use !<command> to execute shell commands")
+                print("Just type in natural language to generate ffmpeg commands." \
+                " Commands are generated on-the-fly and can be edited before execution." \
+                " The REPL maintains conversation context, so you can iteratively refine your requests." \
+                " For example, start with 'Convert video.mp4 to mp3', then follow up with 'Now make it 128kbps' or 'Actually, I want AAC instead of MP3'." \
+                " The system prompt (profile) guides the assistant's behavior. You can switch profiles or customize them to better suit your needs." \
+                "")
+                continue
+
+            elif cmd in ("ping"):
                 try:
                     verify_connection(client, base_url=_client_base_url(client))
                     print("LLM connectivity: OK")
@@ -136,17 +154,6 @@ def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, 
                 rc = execute_command(shell_cmd)
                 if rc != 0:
                     print(f"Shell command exited {rc}", file=sys.stderr)
-            continue
-
-        if line in ("/help", "/h", "/?"):
-            print("Available commands:")
-            print("  /help, /h, /? - Show this help message")
-            print("  /ping - Check LLM connectivity")
-            print("  /reset - Clear conversation history (keep system prompt)")
-            print("  /profile - Show current profile info")
-            print("  /profiles - List available profiles")
-            print("  !<command> - Execute shell command")
-            print("  exit/quit/logout/:q/:q! - Exit the REPL")
             continue
 
         messages.append({"role": "user", "content": line})
