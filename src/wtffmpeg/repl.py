@@ -1,12 +1,16 @@
 import sys
 import subprocess
 import pyperclip
-from wtffmpeg.llm import OpenAI, generate_ffmpeg_command
+from .llm import generate_ffmpeg_command, verify_connection
+from .profiles import Profile
 
 from pathlib import Path
-HISTFILE = Path("~/.wtff_history").expanduser()
+CMD_HISTFILE = Path.home() / ".wtff_history"
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
+#from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+
 
 def execute_command(command: str) -> int:
     """Execute a shell command, streaming output. Returns exit code."""
@@ -36,7 +40,7 @@ def print_command(cmd: str):
     print("------------------------------")
 
 
-def single_shot(prompt: str, client: OpenAI, model: str, *, do_copy: bool, do_exec: bool, profile: Profile) -> int:
+def single_shot(prompt: str, client: OpenAI, model: str, *, always_copy: bool,  profile: Profile) -> int:
     messages = [
         {"role": "system", "content": profile.text},
         {"role": "user", "content": prompt},
@@ -49,44 +53,49 @@ def single_shot(prompt: str, client: OpenAI, model: str, *, do_copy: bool, do_ex
 
     print_command(cmd)
 
-    if do_copy:
+    if cmd and always_copy:
         pyperclip.copy(cmd)
         print("Command copied to clipboard.")
 
-    if do_exec:
-        return execute_command(cmd)
-
-    try:
-        confirm = input("Execute this command? [y/N] ")
-        if confirm.lower() == "y":
-            return execute_command(cmd)
-        print("Execution cancelled by user.")
-        return 0
-    except (EOFError, KeyboardInterrupt):
         print("\nExecution cancelled by user.")
         return 0
 
 
-def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, profile: Profile):
-    session = PromptSession(history=FileHistory(str(HISTFILE)))
+def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, profile: Profile, always_copy: bool = False):
+#    # REPL input history should NOT be persisted (cmd history is separate)
+#    session = PromptSession(history=InMemoryHistory(), auto_suggest=AutoSuggestFromHistory())
+    def _client_base_url(client) -> str | None:
+        for attr in ("base_url", "_base_url"):
+            print("d4bug: looking for client attr", attr)
+            v = getattr(client, attr, None)
+            if v:
+                return str(v)
+        return None
 
+    session = PromptSession(
+        history=FileHistory(str(CMD_HISTFILE)),
+        auto_suggest=AutoSuggestFromHistory(),
+    )
     messages = [{"role": "system", "content": profile.text}]
 
     if preload:
         messages.append({"role": "user", "content": preload})    # preload is "safe landing": run once, then drop into repl
 
         messages = trim_messages(messages, keep_last_turns=keep_last_turns)
-        raw, cmd = generate_ffmpeg_command(messages, client, model)
+        raw, cmd = generate_ffmpeg_command(
+            messages, client, model=model
+        )
         if cmd:
-            messages.append({"role": "assistant", "content": cmd})
+            messages.append({"role": "assistant", "content": raw})
             messages = trim_messages(messages, keep_last_turns=keep_last_turns)
-            print_command(cmd)
+            print_command(cmd or raw)
 
     print("Entering interactive mode. Type 'exit'/'quit'/'logout' to leave. Use !<cmd> to run shell commands.")
 
     while True:
         try:
-            line = session.prompt("wtff> ")
+            line = session.prompt("wtff> ", default=str(prefill) if 'prefill' in locals() else "")
+            line = line.strip().lower()
         except (EOFError, KeyboardInterrupt):
             print("\nExiting interactive mode.")
             return
@@ -94,10 +103,33 @@ def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, 
         if not line:
             continue
 
-        low = line.strip().lower()
-        if low in ("exit", "quit", "logout"):
+        if line in ("exit", "quit", "logout", ":q", ":q!"):
             return
-
+        if line.startswith("/"):
+            cmd = line[1:].strip().lower()
+            if cmd in ("ping", "pingllm"):
+                try:
+                    verify_connection(client, base_url=_client_base_url(client))
+                    print("LLM connectivity: OK")
+                except RuntimeError as e:
+                    print(str(e), file=sys.stderr)
+            elif cmd == "reset":
+                messages = messages[:1]  # keep system prompt
+                print("Conversation history cleared.")
+            elif cmd == "profile":
+                print(f"Current profile: {profile.name}")
+                print(profile.text)
+            elif cmd == "profiles":
+                avail = list_profiles()
+                print("User profiles:")
+                for n in avail["user"]:
+                    print(f"  {n}")
+                print("Built-in profiles:")
+                for n in avail["builtin"]:
+                    print(f"  {n}")
+            else:
+                print(f"Unknown command: {line}", file=sys.stderr)
+            continue
         if line.startswith("!"):
             shell_cmd = line[1:].strip()
             if shell_cmd:
@@ -105,37 +137,35 @@ def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, 
                 if rc != 0:
                     print(f"Shell command exited {rc}", file=sys.stderr)
             continue
+
+        if line in ("/help", "/h", "/?"):
+            print("Available commands:")
+            print("  /help, /h, /? - Show this help message")
+            print("  /ping - Check LLM connectivity")
+            print("  /reset - Clear conversation history (keep system prompt)")
+            print("  /profile - Show current profile info")
+            print("  /profiles - List available profiles")
+            print("  !<command> - Execute shell command")
+            print("  exit/quit/logout/:q/:q! - Exit the REPL")
+            continue
+
         messages.append({"role": "user", "content": line})
         messages = trim_messages(messages, keep_last_turns=keep_last_turns)
 
         raw, cmd = generate_ffmpeg_command(messages, client, model)
         if not cmd:
-            print("Failed to generate a command.", file=sys.stderr)
-            # roll back last user turn so a failed call doesnt poison context
+            print(raw)
             messages.pop()
             continue
 
         messages.append({"role": "assistant", "content": raw})
         messages = trim_messages(messages, keep_last_turns=keep_last_turns)
 
-        print_command(cmd)
+        print_command(cmd or raw)
+        last_cmd = cmd
 
-        try:
-            confirm = session.prompt("Execute? [y/N], or (c)opy to clipboard: ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print("\nExiting interactive mode.")
-            return
-
-        if confirm == "y":
-            pyperclip.copy(cmd)
-            rc = execute_command(cmd)
-            if rc != 0:
-                print(f"Command exited {rc}", file=sys.stderr)
-        elif confirm == "c":
-            pyperclip.copy(cmd)
-            print("Command copied to clipboard.")
-        else:
-            print("Execution cancelled.")
+        # Stage for next prompt: user can run/edit/clear
+        prefill = "!" + " ".join(cmd.splitlines()).strip()
 
 
 def trim_messages(messages: list[dict], keep_last_turns: int = 12) -> list[dict]:

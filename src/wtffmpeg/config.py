@@ -73,10 +73,10 @@ def resolve_config(args) -> AppConfig:
     # provider selection
     if openai_api_key:
         provider: Provider = "openai"
-        base_url = None
+        base_url = normalize_base_url(url_raw)
         model = args.model or _env_nonempty("WTFFMPEG_MODEL") or DEFAULT_MODEL_OPENAI
     else:
-        provider = "compat"
+        provider : Provider = "compat"
         base_url = normalize_base_url(url_raw)
         model = args.model or _env_nonempty("WTFFMPEG_MODEL") or DEFAULT_MODEL_COMPAT
 

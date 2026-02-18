@@ -67,6 +67,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Copy generated command to clipboard (single-shot only).",
     )
 
+    p.add_argument(
+        "-A", "--Always-copy",
+        action="store_true",
+        help="Always copy generated command to clipboard without confirmation.",
+    )
+
+#    p.add_argument(
+#        "-l", "--log-prompts",
+#        action="store_true",
+#        help="Log prompts to history file for better autosuggest. Uses ~/.wtff_history.",
+#    )
     # Keep -i as NOP to avoid breaking old aliases
     p.add_argument(
         "-i", "--interactive",
@@ -119,8 +130,7 @@ def main():
                          do_copy=cfg.copy, do_exec=cfg.exec_)
         raise SystemExit(rc)
 
-    repl(cfg.preload_prompt, client, cfg.model, cfg.context_turns, profile=cfg.profile)
-    raise SystemExit(0)
+    repl(cfg.preload_prompt, client, cfg.model, cfg.context_turns, always_copy=args.Always_copy, profile=cfg.profile)
 
 if __name__ == "__main__":
     main()
