@@ -104,9 +104,11 @@ ffmpeg -i test_pattern.mp4 -vf "fps=10,scale=320:-1:flags=lanczos" output.gif
 Execute? [y/N], (c)opy to clipboard:
 ```
 
-If you say y, it runs.
+***If you say y, it runs.
 If you say c, it copies.
-If you say anything else, nothing happens. You stay in the REPL. 
+If you say anything else, nothing happens. You stay in the REPL.***
+
+**The above is not accurate anymore; I have streamlined the "execute or don't" UX to one much more amenable to the normal cli user**
 
 Running
 ```
