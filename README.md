@@ -109,6 +109,7 @@ If you say c, it copies.
 If you say anything else, nothing happens. You stay in the REPL.***
 
 **The above is not accurate anymore; I have streamlined the "execute or don't" UX to one much more amenable to the normal cli user**
+See video at top for a glimpse of how it works now. I'll update all of these examples soon, but wanted to make a note for now.
 
 Running
 ```
