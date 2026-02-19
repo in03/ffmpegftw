@@ -9,7 +9,7 @@ https://github.com/user-attachments/assets/75222305-efe3-4581-9172-b6d76ad37eba
 --
 `wtffmpeg` is a command-line tool that uses a Large Language Model (LLM) to translate plain-English descriptions of video or audio tasks into **actual, executable `ffmpeg` commands**.
 
-It is intended to eliminate a common workflow where you know that ffmpeg is the right tool or a job, so you:
+It is intended to eliminate a common workflow where you know that ffmpeg is the right tool for a job, so you:
 
 1. Search Stack Overflow
 2. Read a 1000-word explanation
