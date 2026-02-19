@@ -353,11 +353,7 @@ def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, 
         
 
         if not line:
-            print("NOT LINE")
-            print_command(raw)
             continue
-        else:
-            print("GOT LINE:", line)
         
         prefill = ""
         cmd = line[1:].strip().lower()
@@ -440,8 +436,6 @@ def repl(preload: str | None, client: OpenAI, model: str, keep_last_turns: int, 
 
             if cmd:
                 prefill = "!" + " ".join(cmd.splitlines()).strip()
-                print(f"prefill: {prefill}, cmd: {cmd}")
-
 
 def trim_messages(messages: list[dict], keep_last_turns: int = 12) -> list[dict]:
     if keep_last_turns <= 0:
