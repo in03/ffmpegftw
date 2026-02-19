@@ -46,7 +46,7 @@ Prior to **wtffmpeg**, it was typical for me to spend a lot of time learning how
 
 So, if I am honest, I will admit that *every* `ffmpeg` session that accomplishes anything useful or meaningful is already an exercise in up-arrow, command-history editing, and evolving incremental command-line mutations until finally one adaptation naturally selects to reproduce and pass on hard-won progress to the next generation of command.  Or something like it anyway.  
 
-So... if I acknowledge that as the truth, then using a **etffmpeg** as a REPL for `ffmpeg` that is actually very often *at least as correct* the first time as I would have been  going it alone - and with search engines being a continually decreasing return on investment of our time, while inexplicably we continue to go back in hopes that search enshittification is over and...
+So... if I acknowledge that as the truth, then using a **wtffmpeg** as a REPL for `ffmpeg` that is actually very often *at least as correct* the first time as I would have been  going it alone - and with search engines being a continually decreasing return on investment of our time, while inexplicably we continue to go back in hopes that search enshittification is over and...
 
 Let's be intellectually  honest: the LLMs are at least *close to correct* about as often as I am. `ffmpeg` usage, for me, is already very non-deterministic. 
 ffmpeg is just enormously powerful, and its list of capabilities and ways to affect their outcome is immense.
