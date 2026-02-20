@@ -26,6 +26,7 @@ class AppConfig:
     context_turns: int
     preload_prompt: Optional[str]
     prompt_once: Optional[str]
+    no_nag: bool
 
     # actions
     copy: bool
@@ -91,6 +92,7 @@ def resolve_config(args) -> AppConfig:
         context_turns=args.context_turns,
         preload_prompt=args.prompt,
         prompt_once=args.prompt_once,
+        no_nag= args.no_nag,
         copy=args.copy,
 #        exec_=args.exec_,
         profile=profile,

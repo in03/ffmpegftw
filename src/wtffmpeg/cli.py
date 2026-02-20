@@ -89,7 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--profile", type=str, default=None, help="Profile name or path")
     p.add_argument("--list-profiles", action="store_true", help="List available profiles and exit")
     p.add_argument("--profile-dir", type=Path, default=None, help="Override ~/.wtffmpeg/profiles")
-
+    p.add_argument("--no-nag", action="store_true", help="Disable nag reminder above every prompt, to warn user")
     return p
 
 def _env_nonempty(name: str) -> str | None:
@@ -118,11 +118,10 @@ def main():
     client  = build_client(cfg)
 
     if cfg.prompt_once is not None:
-        rc = single_shot(cfg.prompt_once, client, cfg.model, profile=cfg.profile,
-                         copy=args.copy)
+        rc = single_shot(client=client, cfg=cfg)
         raise SystemExit(rc)
 
-    repl(cfg.preload_prompt, client, cfg.model, cfg.context_turns, copy=args.copy, profile=cfg.profile, cfg=cfg)
+    repl(client=client, cfg=cfg)
 
 if __name__ == "__main__":
     main()
