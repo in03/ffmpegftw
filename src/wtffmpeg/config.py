@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Literal, Any
 import os
@@ -236,3 +237,12 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
         profile_name=profile_name,
         profile_dir=profile_dir,
     )
+
+def resolve_profile(cfg: AppConfig) -> Profile:
+    """Return the Profile for cfg.profile_name (cached)."""
+    return _cached_profile(str(cfg.profile_dir), cfg.profile_name)
+
+# Profile resolution (name -> Profile)
+@lru_cache(maxsize=64)
+def _cached_profile(profile_dir_str: str, profile_name: str) -> Profile:
+    return load_profile(profile_name, Path(profile_dir_str))

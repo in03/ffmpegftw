@@ -32,8 +32,8 @@ from .config import (
     save_config,
     normalize_base_url,
 )
-from .profiles import load_profile, list_profiles, resolve_profile
-
+from .profiles import load_profile, list_profiles
+from .config import resolve_profile
 
 matrix_style = Style.from_dict(
     {
