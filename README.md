@@ -130,7 +130,7 @@ Generated commands are kept in command history even if you don't execute them �
 
 ### The transcript and /raw
 
-Models often say more than the one command wtffmpeg displays — explanations, warnings, alternative invocations. None of that is lost: every exchange (prompt, full raw response, extracted commands, whether you ran it) is kept for the session and logged to `~/.wtffmpeg/transcript.jsonl` (size-capped; disable with `--no-transcript` or `/config set transcript=false`).
+Models sometimes say more than the one command wtffmpeg displays despite the default system prompt's instructions to the contrary - explanations, warnings, alternative invocations. If it exists, the tokens were spent anyway so although the extraneous output is stripped from the display, none of that is lost: every exchange (prompt, full raw response, extracted commands, whether you ran it) is kept for the session and logged to `~/.wtffmpeg/transcript.jsonl` (size-capped; disable with `--no-transcript` or `/config set transcript=false`).
 
 - `/raw` — page through the full model response for the latest exchange; `/raw <n>` for an earlier one
 - `/pane` or **ctrl-t** — toggle a small transcript pane above the status bar showing recent exchange context; **shift+up/down** scrolls it while it's open
