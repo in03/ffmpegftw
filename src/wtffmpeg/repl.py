@@ -16,7 +16,7 @@ from prompt_toolkit.application import get_app
 from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.formatted_text import HTML
 
-from pygments.lexers.python import PythonLexer
+from pygments.lexers.shell import BashLexer
 from pypager.pager import Pager
 from pypager.source import StringSource
 from .runtime import RuntimeState, reconcile_runtime, client_fingerprint
@@ -297,6 +297,27 @@ def repl(*, cfg: AppConfig, client=None):
     reconcile_runtime(cfg, rt, force=(client is None))
     client = rt.client
 
+    # First-run onboarding: nothing configured anywhere and nothing answering
+    # at the default local endpoint — print a quick-start instead of letting
+    # the first prompt fail with a raw connection error.
+    unconfigured = (
+        cfg.provider == "compat"
+        and not cfg.openai_api_key
+        and not cfg.bearer_token
+        and cfg.base_url == "http://localhost:11434/v1"
+        and not DEFAULT_CONFIG_PATH.exists()
+    )
+    if unconfigured:
+        try:
+            verify_connection(client, base_url=cfg.base_url)
+        except RuntimeError:
+            print("No LLM is configured and nothing answered at http://localhost:11434.")
+            print("Quick start:")
+            print("  - Local: install and run Ollama (https://ollama.com), e.g. `ollama pull gpt-oss:20b`")
+            print("  - OpenAI: set WTFFMPEG_OPENAI_API_KEY or pass --api-key (default model: gpt-5-mini)")
+            print("  - Other OpenAI-compatible server: wtff --url http://host:port [--bearer-token ...]")
+            print("Once working, persist your settings with /config save.")
+
     session = PromptSession(
         history=FileHistory(str(CMD_HISTFILE)),
         auto_suggest=AutoSuggestFromHistory(),
@@ -339,7 +360,7 @@ def repl(*, cfg: AppConfig, client=None):
             line = session.prompt(
                 "wtff> ",
                 default=prefill,
-                lexer=PygmentsLexer(PythonLexer),
+                lexer=PygmentsLexer(BashLexer),
                 bottom_toolbar=get_toolbar,
                 rprompt=lambda: f"{(rt.profile.name if rt.profile else cfg.profile_name)} | {cfg.model} |",
                 style=matrix_style,
