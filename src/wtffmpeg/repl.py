@@ -281,7 +281,7 @@ def single_shot(*, client, cfg: AppConfig) -> int:
         {"role": "user", "content": cfg.prompt_once},
     ]
 
-    raw, cmd = generate_ffmpeg_command(messages, client, cfg.model)
+    raw, cmd = generate_ffmpeg_command(messages, client, cfg)
     if not cmd:
         print("Failed to generate a command.", file=sys.stderr)
         print(raw)
@@ -336,7 +336,7 @@ def repl(*, cfg: AppConfig, client=None):
     if cfg.preload_prompt:
         messages.append({"role": "user", "content": cfg.preload_prompt})
         messages = trim_messages(messages, keep_last_turns=cfg.context_turns)
-        raw, cmd = generate_ffmpeg_command(messages, client, model=cfg.model)
+        raw, cmd = generate_ffmpeg_command(messages, client, cfg)
         if cmd:
             messages.append({"role": "assistant", "content": raw})
             messages = trim_messages(messages, keep_last_turns=cfg.context_turns)
@@ -474,7 +474,7 @@ def repl(*, cfg: AppConfig, client=None):
         messages.append({"role": "user", "content": line})
         messages = trim_messages(messages, keep_last_turns=cfg.context_turns)
 
-        raw, cmd = generate_ffmpeg_command(messages, client, cfg.model)
+        raw, cmd = generate_ffmpeg_command(messages, client, cfg)
         if not cmd:
             print("Failed to generate a command.", file=sys.stderr)
             print(raw)

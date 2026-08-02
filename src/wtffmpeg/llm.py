@@ -28,13 +28,16 @@ def verify_connection(client: OpenAI, base_url: str | None) -> None:
 
         raise RuntimeError("\n".join(parts)) from e
 
-def generate_ffmpeg_command(messages: list[dict], client: OpenAI, model: str) -> Tuple[str, str]:
+def generate_ffmpeg_command(messages: list[dict], client: OpenAI, cfg: AppConfig) -> Tuple[str, str]:
     """Generate a single ffmpeg command from the LLM, and try to strip markdown/commentary."""
     try:
+        # OpenAI's gpt-5 family rejects any temperature other than the default,
+        # so only pin temperature for compat (local/self-hosted) endpoints.
+        kwargs = {} if cfg.provider == "openai" else {"temperature": 0.0}
         resp = client.chat.completions.create(
-            model=model,
+            model=cfg.model,
             messages=messages,
-            temperature=0.0,
+            **kwargs,
         )
         raw = (resp.choices[0].message.content or "").strip()
         text = raw
