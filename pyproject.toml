@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wtffmpeg"
-version = "0.2.4"
+version = "0.3.0"
 description = "A command-line tool to translate natural language to ffmpeg commands using a local LLM."
 # You can change the author name and email.
 authors = [
   { name="ScottVR", email="scottvr@gmail.com" },
 ]
 readme = "README.md" 
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -26,6 +26,11 @@ dependencies = [
     "pyperclip",
     "prompt-toolkit",
     "pypager",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
 ]
 
 # This section creates the command-line script alias.
