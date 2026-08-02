@@ -17,6 +17,9 @@ DEFAULT_PROFILE_NAME = "minimal"
 
 DEFAULT_CONFIG_PATH = Path.home() / ".wtffmpeg" / "config.env"
 
+# What plain up/down arrows scroll through in the REPL.
+HISTORY_MODES = ("prompt", "command", "all")
+
 # Keys that are safe to accept from a config file / REPL.
 CONFIG_KEYS: set[str] = {
     "model",
@@ -28,6 +31,8 @@ CONFIG_KEYS: set[str] = {
     "profile",
     "no_nag",
     "copy",
+    "history",
+    "transcript",
 }
 
 # Keys we persist by default (avoid secrets).
@@ -39,6 +44,8 @@ PERSIST_KEYS: set[str] = {
     "profile",
     "no_nag",
     "copy",
+    "history",
+    "transcript",
 }
 
 @dataclass(frozen=True)
@@ -65,6 +72,10 @@ class AppConfig:
     # actions
     copy: bool
     # exec_: bool
+
+    # repl history/transcript
+    history: str = "all"  # one of HISTORY_MODES
+    transcript: bool = True
 
 
 def _resolve_bool(cli_value: Optional[bool], file_value: Any, default: bool = False) -> bool:
@@ -101,18 +112,29 @@ def normalize_provider(provider: str) -> Provider:
     return p  # type: ignore[return-value]
 
 
+def normalize_history_mode(mode: str) -> str:
+    m = mode.strip().lower()
+    if m not in HISTORY_MODES:
+        raise ValueError(
+            f"Invalid history mode '{mode}'. Expected one of: {', '.join(HISTORY_MODES)}."
+        )
+    return m
+
+
 def _coerce_value(key: str, raw: str) -> Any:
     v = raw.strip()
     if v.lower() in ("none", "null"):
         return None
     if key in ("context_turns",):
         return int(v)
-    if key in ("copy", "no_nag"):
+    if key in ("copy", "no_nag", "transcript"):
         if v.lower() in ("1", "true", "yes", "on"):
             return True
         if v.lower() in ("0", "false", "no", "off"):
             return False
         raise ValueError(f"Bad boolean for {key}: {raw}")
+    if key == "history":
+        return normalize_history_mode(v)
     return v
 
 
@@ -182,6 +204,9 @@ def apply_overrides(cfg: AppConfig, overrides: dict[str, Any]) -> AppConfig:
     # provider should be a valid Literal
     if "provider" in updates and updates["provider"] is not None:
         updates["provider"] = normalize_provider(str(updates["provider"]))
+
+    if "history" in updates and updates["history"] is not None:
+        updates["history"] = normalize_history_mode(str(updates["history"]))
 
     return replace(cfg, **updates)
 
@@ -260,6 +285,17 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
     no_nag = _resolve_bool(None if nag_arg is None else (not nag_arg), file_cfg.get("no_nag"))
     copy = _resolve_bool(getattr(args, "copy", None), file_cfg.get("copy"))
 
+    history_raw = (
+        getattr(args, "history", None)
+        or _env_nonempty("WTFFMPEG_HISTORY")
+        or file_cfg.get("history")
+        or "all"
+    )
+    history = normalize_history_mode(str(history_raw))
+    transcript = _resolve_bool(
+        getattr(args, "transcript", None), file_cfg.get("transcript"), default=True
+    )
+
     return AppConfig(
         model=str(model),
         provider=provider,
@@ -273,6 +309,8 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
         copy=copy,
         profile_name=profile_name,
         profile_dir=profile_dir,
+        history=history,
+        transcript=transcript,
     )
 
 def resolve_profile(cfg: AppConfig) -> Profile:

@@ -7,21 +7,29 @@ from pathlib import Path
 
 import pyperclip
 from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.enums import EditingMode
+from prompt_toolkit.filters import Condition
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.styles import Style
 from prompt_toolkit.application import get_app
 from prompt_toolkit import print_formatted_text as print
-from prompt_toolkit.formatted_text import HTML
 
 from pygments.lexers.shell import BashLexer
 from pypager.pager import Pager
 from pypager.source import StringSource
 from .runtime import RuntimeState, reconcile_runtime, client_fingerprint
 
-from .llm import generate_ffmpeg_command, verify_connection, list_models, print_models
+from .history import DedupFileHistory, history_move, matches
+from .transcript import Transcript, build_pane_lines, format_exchange
+from .llm import (
+    extract_commands,
+    generate_ffmpeg_command,
+    verify_connection,
+    list_models,
+    print_models,
+)
 from .config import (
     AppConfig,
     CONFIG_KEYS,
@@ -51,6 +59,81 @@ matrix_style = Style.from_dict(
 
 CMD_HISTFILE = Path.home() / ".wtff_history"
 
+# transcript pane: content rows shown below a one-row header
+PANE_BODY = 3
+
+
+class _UiState:
+    """Mutable REPL UI state read by key bindings and the toolbar callable."""
+
+    def __init__(self, history_mode: str):
+        self.history_mode = history_mode
+        self.pane_visible = False
+        self.pane_offset = 0  # viewport top, clamped at render time
+        self.pane_follow = True  # pinned to newest content
+
+    def scroll(self, delta: int) -> None:
+        if delta < 0:
+            self.pane_follow = False
+            self.pane_offset = max(0, self.pane_offset - 1)
+        else:
+            self.pane_offset += 1  # clamped (and follow re-set) at render
+
+
+def build_key_bindings(ui: _UiState) -> KeyBindings:
+    kb = KeyBindings()
+    pane_open = Condition(lambda: ui.pane_visible)
+    filtered_nav = Condition(lambda: ui.history_mode != "all")
+
+    def move(event, delta: int, mode: str) -> None:
+        buf = event.current_buffer
+        doc = buf.document
+        if delta < 0 and doc.cursor_position_row > 0:
+            buf.cursor_up()
+            return
+        if delta > 0 and doc.cursor_position_row < doc.line_count - 1:
+            buf.cursor_down()
+            return
+        history_move(buf, delta, lambda s: matches(s, mode))
+
+    @kb.add("up", filter=filtered_nav)
+    def _(event):
+        move(event, -1, ui.history_mode)
+
+    @kb.add("down", filter=filtered_nav)
+    def _(event):
+        move(event, +1, ui.history_mode)
+
+    @kb.add("s-up", filter=~pane_open)
+    def _(event):
+        move(event, -1, "prompt")
+
+    @kb.add("s-down", filter=~pane_open)
+    def _(event):
+        move(event, +1, "prompt")
+
+    @kb.add("c-up")
+    def _(event):
+        move(event, -1, "command")
+
+    @kb.add("c-down")
+    def _(event):
+        move(event, +1, "command")
+
+    @kb.add("s-up", filter=pane_open)
+    def _(event):
+        ui.scroll(-1)
+
+    @kb.add("s-down", filter=pane_open)
+    def _(event):
+        ui.scroll(+1)
+
+    @kb.add("c-t")
+    def _(event):
+        ui.pane_visible = not ui.pane_visible
+
+    return kb
+
 
 def _parse_kv(tokens: list[str]) -> dict[str, str]:
     out: dict[str, str] = {}
@@ -73,6 +156,8 @@ def _sanitize_cfg(cfg: AppConfig) -> dict:
         "profile": cfg.profile_name,
         "copy": cfg.copy,
         "no_nag": cfg.no_nag,
+        "history": cfg.history,
+        "transcript": cfg.transcript,
     }
 
 
@@ -184,7 +269,7 @@ USAGE
                 # keep profile always valid; interpret unset as default
                 load_profile(DEFAULT_PROFILE_NAME, cfg.profile_dir)  # validate
                 updates["profile_name"] = DEFAULT_PROFILE_NAME
-            elif k in ("model", "provider", "context_turns", "copy", "no_nag"):
+            elif k in ("model", "provider", "context_turns", "copy", "no_nag", "history", "transcript"):
                 print(f"Cannot unset required key: {k}", file=sys.stderr)
             else:
                 updates[k] = None
@@ -318,9 +403,13 @@ def repl(*, cfg: AppConfig, client=None):
             print("  - Other OpenAI-compatible server: wtff --url http://host:port [--bearer-token ...]")
             print("Once working, persist your settings with /config save.")
 
+    ui = _UiState(cfg.history)
+    transcript = Transcript()
+
     session = PromptSession(
-        history=FileHistory(str(CMD_HISTFILE)),
+        history=DedupFileHistory(str(CMD_HISTFILE)),
         auto_suggest=AutoSuggestFromHistory(),
+        key_bindings=build_key_bindings(ui),
     )
 
     def get_toolbar():
@@ -329,14 +418,62 @@ def repl(*, cfg: AppConfig, client=None):
         except Exception:
             width = 80
 
+        frags = []
+        if ui.pane_visible:
+            lines = build_pane_lines(transcript.entries, max(20, width - 2))
+            total = len(lines)
+            max_off = max(0, total - PANE_BODY)
+            if ui.pane_follow:
+                ui.pane_offset = max_off
+            ui.pane_offset = min(ui.pane_offset, max_off)
+            if ui.pane_offset >= max_off:
+                ui.pane_follow = True
+            off = ui.pane_offset
+            view = lines[off : off + PANE_BODY]
+            while len(view) < PANE_BODY:
+                view.append("")
+            if total:
+                pos = f"{off + 1}–{min(off + PANE_BODY, total)}/{total}"
+            else:
+                pos = "empty"
+            head = f"─ transcript {pos} · shift+↑/↓ scroll · /raw full text · ctrl-t close "
+            frags.append(("bold", head[:width] + "\n"))
+            for ln in view:
+                frags.append(("", ln[:width] + "\n"))
+
         bind_txt = "Vi" if session.editing_mode == EditingMode.VI else "Emacs"
         copy_txt = f"Copy: {'ON' if cfg.copy else 'OFF'}"
         padding = width - len(bind_txt) - len(copy_txt) - 12
         if padding < 1:
             padding = 1
-        return HTML(f"<b>[Mode: {bind_txt}]</b> {' ' * padding} <b>{copy_txt}</b>")
+        frags.append(("bold", f"[Mode: {bind_txt}]"))
+        frags.append(("", " " * (padding + 1)))
+        frags.append(("bold", copy_txt))
+        return frags
 
     messages = [{"role": "system", "content": rt.profile.text if rt.profile else resolve_profile(cfg).text}]
+
+    # Generated commands the user hasn't accepted yet: appended to history at
+    # the next prompt unless accepted verbatim (auto-append covers that case).
+    pending_hist: list[str] = []
+
+    def record_generation(prompt_text: str, raw: str) -> str:
+        """Log the exchange, stash all command candidates into history.
+
+        Returns the prefill string for the primary command ('' if none).
+        Alternatives go into history immediately; the primary is deferred via
+        pending_hist so it survives even if the user discards the prefill.
+        """
+        cands = extract_commands(raw)
+        transcript.add_exchange(prompt_text, raw, cands, persist=cfg.transcript)
+        ui.pane_follow = True
+        if not cands:
+            return ""
+        for alt in reversed(cands[1:]):
+            session.history.append_string("!" + alt)
+        primary = "!" + " ".join(cands[0].splitlines()).strip()
+        pending_hist.append(primary)
+        return primary
 
     # preload: run once, then drop into repl with prefilled !cmd
     prefill = ""
@@ -344,18 +481,20 @@ def repl(*, cfg: AppConfig, client=None):
         messages.append({"role": "user", "content": cfg.preload_prompt})
         messages = trim_messages(messages, keep_last_turns=cfg.context_turns)
         raw, cmd = generate_ffmpeg_command(messages, client, cfg)
+        if raw:
+            prefill = record_generation(cfg.preload_prompt, raw)
         if cmd:
             messages.append({"role": "assistant", "content": raw})
             messages = trim_messages(messages, keep_last_turns=cfg.context_turns)
             if cfg.copy:
                 pyperclip.copy(cmd)
-            prefill = "!" + " ".join(cmd.splitlines()).strip()
 
     print("Entering interactive mode. Type 'exit'/'quit' to leave. Use !<cmd> to run shell commands.")
     if not cfg.no_nag:
         nag()
 
     while True:
+        ui.history_mode = cfg.history
         try:
             line = session.prompt(
                 "wtff> ",
@@ -368,6 +507,13 @@ def repl(*, cfg: AppConfig, client=None):
         except (EOFError, KeyboardInterrupt):
             print("\nExiting interactive mode.")
             return
+
+        # Preserve generated-but-not-accepted commands in history (accepting
+        # the prefill verbatim already stored it via the normal accept path).
+        for h in pending_hist:
+            if h != line:
+                session.history.append_string(h)
+        pending_hist.clear()
 
         prefill = ""
         if not line:
@@ -397,8 +543,13 @@ def repl(*, cfg: AppConfig, client=None):
                 print("  /model [name] - Show or set the active model (soft-checked against /models)")
                 print("  /config - View and modify configuration (/config help)")
                 print("  /bindings [vi|emacs] - Switch keybindings")
+                print("  /raw [n] - Show the full model response for exchange n (default: latest)")
+                print("  /pane - Toggle the transcript pane (also ctrl-t)")
                 print("  /q|/quit|/exit|/logout - Exit the REPL")
                 print("- Use !<command> to execute shell commands")
+                print("- History: up/down follow /config history (prompt|command|all);")
+                print("  shift+up/down = prompts only (scrolls the pane when open);")
+                print("  ctrl+up/down = commands only")
                 continue
 
             if cmd == "ping":
@@ -480,6 +631,33 @@ def repl(*, cfg: AppConfig, client=None):
                     print(f"/config error: {e}", file=sys.stderr)
                 continue
 
+            elif cmd == "raw" or cmd.startswith("raw "):
+                if not transcript.entries:
+                    print("No exchanges yet.")
+                    continue
+                arg = cmd.split(None, 1)[1].strip() if " " in cmd else ""
+                n = len(transcript.entries)
+                if arg:
+                    try:
+                        n = int(arg)
+                    except ValueError:
+                        print("Usage: /raw [n]", file=sys.stderr)
+                        continue
+                    if not (1 <= n <= len(transcript.entries)):
+                        print(
+                            f"No such exchange: {n} (have 1-{len(transcript.entries)})",
+                            file=sys.stderr,
+                        )
+                        continue
+                pager = Pager()
+                pager.add_source(StringSource(format_exchange(transcript.entries[n - 1], n)))
+                pager.run()
+                continue
+
+            elif cmd == "pane":
+                ui.pane_visible = not ui.pane_visible
+                continue
+
             elif cmd.startswith("bindings"):
                 mode = cmd[len("bindings") :].strip()
                 if mode == "vi":
@@ -501,6 +679,7 @@ def repl(*, cfg: AppConfig, client=None):
             shell_cmd = line[1:].strip()
             if shell_cmd:
                 rc = execute_command(shell_cmd)
+                transcript.log_exec(shell_cmd, rc, persist=cfg.transcript)
                 if rc != 0:
                     print(f"Shell command exited {rc}", file=sys.stderr)
             continue
@@ -510,6 +689,8 @@ def repl(*, cfg: AppConfig, client=None):
         messages = trim_messages(messages, keep_last_turns=cfg.context_turns)
 
         raw, cmd = generate_ffmpeg_command(messages, client, cfg)
+        if raw:
+            prefill = record_generation(line, raw)
         if not cmd:
             print("Failed to generate a command.", file=sys.stderr)
             print(raw)
@@ -521,7 +702,6 @@ def repl(*, cfg: AppConfig, client=None):
 
         if cfg.copy:
             pyperclip.copy(cmd)
-        prefill = "!" + " ".join(cmd.splitlines()).strip()
 
 
 def trim_messages(messages: list[dict], keep_last_turns: int = 12) -> list[dict]:

@@ -98,6 +98,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show the reminder banner above every prompt. --no-nag hides it (and overrides a saved no_nag=true).",
     )
     p.add_argument(
+        "--history",
+        choices=["prompt", "command", "all"],
+        default=None,
+        help=(
+            "What plain up/down arrows scroll through in the REPL: your prompts,\n"
+            "executed !commands, or all (default). Shift+arrows always scroll prompts\n"
+            "only and ctrl+arrows commands only, regardless of this setting."
+        ),
+    )
+    p.add_argument(
+        "--transcript",
+        dest="transcript",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Log prompts and full model responses to ~/.wtffmpeg/transcript.jsonl\n"
+            "(default on; view in the REPL with /raw). --no-transcript disables."
+        ),
+    )
+    p.add_argument(
         "--config",
         type=Path,
         default=None,

@@ -78,6 +78,64 @@ def print_models(client: OpenAI, cfg: AppConfig) -> int:
     return 0
 
 
+_FENCE_LANGS = ("bash", "sh", "shell", "zsh", "console")
+
+
+def extract_commands(raw: str) -> list[str]:
+    """Extract every ffmpeg command candidate from a model response, in order.
+
+    Handles fenced code blocks, inline backticks, '$ ' prompt markers,
+    backslash line continuations, and (inside fences) commands wrapped
+    across lines without backslashes. Deduplicates preserving order.
+    """
+    if not raw:
+        return []
+    text = raw.strip()
+    if text.lower().startswith("assistant:"):
+        text = text[len("assistant:"):].strip()
+
+    candidates: list[str] = []
+
+    def scan(chunk: str, fenced: bool) -> None:
+        # join backslash continuations first
+        joined: list[str] = []
+        pending = ""
+        for ln in chunk.splitlines():
+            ln = ln.strip()
+            if ln.endswith("\\"):
+                pending += ln[:-1].rstrip() + " "
+                continue
+            joined.append(pending + ln)
+            pending = ""
+        if pending:
+            joined.append(pending.strip())
+
+        for ln in joined:
+            ln = ln.strip().strip("`").strip()
+            if ln.startswith("$ "):
+                ln = ln[2:]
+            if ln.lower().startswith("ffmpeg"):
+                candidates.append(ln)
+            elif fenced and candidates and ln.startswith("-") and not ln.startswith("- "):
+                # option line continuing a wrapped command inside a code block
+                candidates[-1] += " " + ln
+
+    for idx, chunk in enumerate(text.split("```")):
+        if idx % 2 == 1:  # fenced block: drop a leading language tag
+            first, _, rest = chunk.strip().partition("\n")
+            if first.strip().lower() in _FENCE_LANGS:
+                chunk = rest
+        scan(chunk, fenced=(idx % 2 == 1))
+
+    seen: set[str] = set()
+    out: list[str] = []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+
 def generate_ffmpeg_command(messages: list[dict], client: OpenAI, cfg: AppConfig) -> Tuple[str, str]:
     """Generate a single ffmpeg command from the LLM, and try to strip markdown/commentary."""
     try:
@@ -90,34 +148,8 @@ def generate_ffmpeg_command(messages: list[dict], client: OpenAI, cfg: AppConfig
             **kwargs,
         )
         raw = (resp.choices[0].message.content or "").strip()
-        text = raw
-
-
-        # strip fenced blocks if present
-        if "```" in text:
-            parts = text.split("```")
-            if len(parts) >= 2:
-                text = parts[1].strip()
-                if text.lower().startswith(("bash", "sh")):
-                    text = text.split("\n", 1)[1].strip()
-
-        if text.lower().startswith("assistant:"):
-            text = text[len("assistant:"):].strip()
-
-        if text.startswith("`") and text.endswith("`"):
-            text = text.strip("`")
-        if not text.lower().startswith("ffmpeg"):
-            # maybe it's a comment + command; try to extract the command
-            lines = text.splitlines()
-            for line in lines:
-                line = line.strip()
-                if line.startswith("ffmpeg"):
-                    text = line
-                    break   
-        if text.lower().startswith("ffmpeg"):
-            return raw, text
-        else:
-            return raw, ""
+        commands = extract_commands(raw)
+        return raw, (commands[0] if commands else "")
     except openai.NotFoundError as e:
         print(
             f"Model or endpoint not found (404) for model '{cfg.model}'.\n"

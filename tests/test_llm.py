@@ -4,7 +4,13 @@ import httpx
 import openai
 import pytest
 
-from wtffmpeg.llm import build_client, generate_ffmpeg_command, list_models, print_models
+from wtffmpeg.llm import (
+    build_client,
+    extract_commands,
+    generate_ffmpeg_command,
+    list_models,
+    print_models,
+)
 
 
 class FakeModels:
@@ -81,6 +87,69 @@ def test_print_models_failures(capsys, exc, needle):
     _, err = capsys.readouterr()
     assert rc == 1
     assert needle in err
+
+
+# --- extraction -------------------------------------------------------------
+
+CMD1 = "ffmpeg -i in.mp4 out.avi"
+CMD2 = "ffmpeg -i in.mp4 -c:v libx264 out.mp4"
+
+
+def test_extract_plain_command():
+    assert extract_commands(CMD1) == [CMD1]
+
+
+def test_extract_from_fenced_block_with_lang():
+    raw = f"Here you go:\n```bash\n{CMD1}\n```\nEnjoy!"
+    assert extract_commands(raw) == [CMD1]
+
+
+def test_extract_multiple_options_in_order():
+    raw = f"Option 1:\n```\n{CMD1}\n```\nOr, for H.264:\n```\n{CMD2}\n```"
+    assert extract_commands(raw) == [CMD1, CMD2]
+
+
+def test_extract_joins_backslash_continuations():
+    raw = "```\nffmpeg -i in.mp4 \\\n  -c:v libx264 \\\n  out.mp4\n```"
+    assert extract_commands(raw) == ["ffmpeg -i in.mp4 -c:v libx264 out.mp4"]
+
+
+def test_extract_merges_option_lines_inside_fence():
+    raw = "```\nffmpeg -i in.mp4\n-c:v libx264\nout is written\n```"
+    assert extract_commands(raw) == ["ffmpeg -i in.mp4 -c:v libx264"]
+
+
+def test_extract_whole_line_backticks_and_prompt_marker():
+    assert extract_commands(f"`{CMD1}`") == [CMD1]
+    assert extract_commands(f"$ {CMD1}") == [CMD1]
+
+
+def test_extract_strips_assistant_prefix():
+    assert extract_commands(f"assistant: {CMD1}") == [CMD1]
+
+
+def test_extract_dedupes_preserving_order():
+    raw = f"{CMD1}\nAgain:\n```\n{CMD1}\n```\n{CMD2}"
+    assert extract_commands(raw) == [CMD1, CMD2]
+
+
+def test_extract_none_found():
+    assert extract_commands("I cannot help with that.") == []
+    assert extract_commands("") == []
+
+
+def test_generate_success_returns_first_command():
+    content = f"Some intro.\n```bash\n{CMD1}\n```\nAlternatively:\n`{CMD2}`"
+
+    class OKCompletions:
+        def create(self, **kwargs):
+            msg = SimpleNamespace(content=content)
+            return SimpleNamespace(choices=[SimpleNamespace(message=msg)])
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=OKCompletions()))
+    raw, cmd = generate_ffmpeg_command([{"role": "user", "content": "x"}], client, CFG_COMPAT)
+    assert raw == content
+    assert cmd == CMD1
 
 
 @pytest.mark.parametrize(

@@ -132,6 +132,54 @@ def test_cli_overrides_file_persisted_bools(tmp_path):
     assert cfg.no_nag is False and cfg.copy is False
 
 
+# --- history / transcript ---------------------------------------------------
+
+def test_history_defaults_and_precedence(monkeypatch, tmp_path):
+    cfg = resolve_config(make_args(), config_path=NOPATH)
+    assert cfg.history == "all" and cfg.transcript is True
+
+    cf = tmp_path / "config.env"
+    cf.write_text("history=prompt\ntranscript=false\n")
+    cfg = resolve_config(make_args(), config_path=cf)
+    assert cfg.history == "prompt" and cfg.transcript is False
+
+    monkeypatch.setenv("WTFFMPEG_HISTORY", "command")
+    cfg = resolve_config(make_args(), config_path=cf)
+    assert cfg.history == "command"
+
+    cfg = resolve_config(make_args(history="all", transcript=True), config_path=cf)
+    assert cfg.history == "all" and cfg.transcript is True
+
+
+def test_history_flag_choices_and_transcript_tristate():
+    pa = build_parser().parse_args
+    ns = pa([])
+    assert ns.history is None and ns.transcript is None
+    assert pa(["--history", "command"]).history == "command"
+    assert pa(["--transcript"]).transcript is True
+    assert pa(["--no-transcript"]).transcript is False
+    with pytest.raises(SystemExit):
+        pa(["--history", "bogus"])
+
+
+def test_invalid_history_mode_rejected():
+    with pytest.raises(ValueError, match="history mode"):
+        resolve_config(make_args(history="bogus"), config_path=NOPATH)
+    with pytest.raises(ValueError, match="history mode"):
+        _coerce_value("history", "bogus")
+    assert _coerce_value("history", "Prompt") == "prompt"
+    assert _coerce_value("transcript", "off") is False
+
+
+def test_history_persists_in_roundtrip(tmp_path):
+    cfg = resolve_config(make_args(history="command", transcript=False), config_path=NOPATH)
+    out = tmp_path / "saved.env"
+    save_config(cfg, path=out)
+    data = load_config(out)
+    assert data["history"] == "command"
+    assert data["transcript"] is False
+
+
 # --- helpers ----------------------------------------------------------------
 
 def test_coerce_value():

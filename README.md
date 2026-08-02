@@ -1,4 +1,4 @@
-Update! Sorry to anyone that tried to run the code in main for the last week or so. wtffmpeg suffered a "works on my machine" moment when I pushed a commit where things were broken (or merged one, I did't look that hard, I just fixed it as soon as I noticed, after pulling from a repo to a machine that never had a working install of wtffmpeg before, and finding it not to work.) The shame is mine. It is fixed now.
+New in v0.3.0: the REPL's history and the model's chatter are both under your control now. Up/down arrow can scroll through everything (the default), just your typed prompts, or just `!commands` — configurable via `history=[prompt|command|all]` (`--history`, `/config`), with shift+arrows and ctrl+arrows filtering to prompts/commands on the fly regardless of mode. Generated commands you never ran (and alternative commands from the same response) stay reachable in command history instead of vanishing. And everything the model said beyond the one command shown — explanations, warnings, other options — is kept in a session transcript: `/raw` pages the full response, and ctrl-t toggles a small transcript pane above the status bar. Details in [History navigation](#history-navigation) and [The transcript and /raw](#the-transcript-and-raw) below.
 
 ----
 
@@ -116,6 +116,25 @@ Lines starting with ! are executed as shell commands:
 
 These are just for convenience. You cannot, for example, `!chdir` and actually change your REPL process dir. (Though convenient `/cd` (slash commands) may be a thing soon.)
 
+### History navigation
+
+The REPL's history holds both the prompts you type and the generated `!ffmpeg` commands. What the plain up/down arrows scroll through is configurable via `history` (`/config set history=...`, `--history`, or `WTFFMPEG_HISTORY`):
+
+- `all` (default) — everything, interleaved
+- `prompt` — only things you typed (natural language, /commands)
+- `command` — only executed/generated `!` commands
+
+Modifier keys filter on the fly regardless of the mode: **shift+up/down** scrolls prompts only, **ctrl+up/down** commands only. (Modifier-arrow support varies by terminal; iTerm2/kitty and friends are fine, some terminals swallow them.)
+
+Generated commands are kept in command history even if you don't execute them — clearing the prefill doesn't lose the command. If a response contains several command options, *all* of them land in command history (ctrl+up to cycle through them).
+
+### The transcript and /raw
+
+Models often say more than the one command wtffmpeg displays — explanations, warnings, alternative invocations. None of that is lost: every exchange (prompt, full raw response, extracted commands, whether you ran it) is kept for the session and logged to `~/.wtffmpeg/transcript.jsonl` (size-capped; disable with `--no-transcript` or `/config set transcript=false`).
+
+- `/raw` — page through the full model response for the latest exchange; `/raw <n>` for an earlier one
+- `/pane` or **ctrl-t** — toggle a small transcript pane above the status bar showing recent exchange context; **shift+up/down** scrolls it while it's open
+
 ### A note about system prompts
 
 I initially shipped `wtffmpeg` as a tiny REPL app with a huge system prompt that was arguably more valuable as a cheat sheet than as a generalizable input prompt for LLMs to "be good at ffmpeg".
@@ -219,6 +238,7 @@ Defaults to ollama at http://localhost:11434 (command-line equivalent is --url)
 - WTFFMPEG_PROVIDER: Force `openai` or `compat`. If unset, the provider is inferred: `openai` when an API key is set and no URL is given (via cli, env, or config file); `compat` otherwise. (command-line equivalent is --provider)
 - WTFFMPEG_PROFILE:  system prompt profile to use. (Defaults to `minimal`) cli is `--profile`
 - WTFFMPEG_PROFILE_DIR: Alternate directory for your system prompt profiles. (--profile-dir)
+- WTFFMPEG_HISTORY: What plain up/down arrows scroll through in the REPL: `prompt`, `command`, or `all` (default). (cli is `--history`)
 
 ### /slash commands
 ```
@@ -232,6 +252,8 @@ Available /commands:
   /model [name] - Show or set the active model (soft-checked against /models)
   /config - View and modify configuration (type /config help for details)
   /bindings - List special keybindings (e.g. for Vi/Emacs modes)
+  /raw [n] - Show the full model response for exchange n (default: latest)
+  /pane - Toggle the transcript pane (also ctrl-t)
   /q|quit|/exit|/logout - Exit the REPL
 - Use !<command> to execute shell commands
 - Just type in natural language to generate ffmpeg commands.
