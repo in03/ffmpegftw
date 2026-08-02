@@ -67,6 +67,15 @@ class AppConfig:
     # exec_: bool
 
 
+def _resolve_bool(cli_value: Optional[bool], file_value: Any, default: bool = False) -> bool:
+    """Tri-state resolution: explicit CLI true/false > config file > default."""
+    if cli_value is not None:
+        return bool(cli_value)
+    if file_value is not None:
+        return bool(file_value)
+    return default
+
+
 def _env_nonempty(name: str) -> Optional[str]:
     v = os.environ.get(name)
     if v is None:
@@ -247,8 +256,9 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
         if getattr(args, "context_turns", None) is not None
         else file_cfg.get("context_turns", 12)
     )
-    no_nag = bool(getattr(args, "no_nag", False) or file_cfg.get("no_nag", False))
-    copy = bool(getattr(args, "copy", False) or file_cfg.get("copy", False))
+    nag_arg = getattr(args, "nag", None)
+    no_nag = _resolve_bool(None if nag_arg is None else (not nag_arg), file_cfg.get("no_nag"))
+    copy = _resolve_bool(getattr(args, "copy", None), file_cfg.get("copy"))
 
     return AppConfig(
         model=str(model),

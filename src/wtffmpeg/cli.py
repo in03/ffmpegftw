@@ -64,8 +64,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "-c",
         "--copy",
-        action="store_true",
-        help="Copy generated command to clipboard automatically.",
+        dest="copy",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Copy generated command to clipboard automatically. --no-copy overrides a saved copy=true.",
     )
 
     # Keep -i as NOP to avoid breaking old aliases
@@ -86,7 +88,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--profile", type=str, default=None, help="Profile name or path")
     p.add_argument("--list-profiles", action="store_true", help="List available profiles and exit")
     p.add_argument("--profile-dir", type=Path, default=None, help="Override ~/.wtffmpeg/profiles")
-    p.add_argument("--no-nag", action="store_true", help="Disable nag reminder above every prompt")
+    p.add_argument(
+        "--nag",
+        dest="nag",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Show the reminder banner above every prompt. --no-nag hides it (and overrides a saved no_nag=true).",
+    )
     p.add_argument(
         "--config",
         type=Path,

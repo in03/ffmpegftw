@@ -28,6 +28,7 @@ from .config import (
     PERSIST_KEYS,
     DEFAULT_PROFILE_NAME,
     DEFAULT_CONFIG_PATH,
+    _coerce_value,
     apply_overrides,
     load_config,
     save_config,
@@ -59,21 +60,6 @@ def _parse_kv(tokens: list[str]) -> dict[str, str]:
         k, v = t.split("=", 1)
         out[k.strip()] = v.strip()
     return out
-
-
-def _coerce_value(key: str, raw: str):
-    v = raw.strip()
-    if v.lower() in ("none", "null"):
-        return None
-    if key in ("context_turns",):
-        return int(v)
-    if key in ("copy", "no_nag"):
-        if v.lower() in ("1", "true", "yes", "on"):
-            return True
-        if v.lower() in ("0", "false", "no", "off"):
-            return False
-        raise ValueError(f"Bad boolean for {key}: {raw}")
-    return v
 
 
 def _sanitize_cfg(cfg: AppConfig) -> dict:
