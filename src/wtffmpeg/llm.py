@@ -118,8 +118,33 @@ def generate_ffmpeg_command(messages: list[dict], client: OpenAI, cfg: AppConfig
             return raw, text
         else:
             return raw, ""
+    except openai.NotFoundError as e:
+        print(
+            f"Model or endpoint not found (404) for model '{cfg.model}'.\n"
+            f"  - The model may not exist on this server: run /models (REPL) or wtff --list-models to see what's available.\n"
+            f"  - Some compat servers also 404 on wrong paths; check --url / WTFFMPEG_LLM_API_URL.\n"
+            f"  Detail: {e}",
+            file=sys.stderr,
+        )
+        return "", ""
+    except openai.AuthenticationError as e:
+        who = (
+            "--api-key / WTFFMPEG_OPENAI_API_KEY"
+            if cfg.provider == "openai"
+            else "--bearer-token / WTFFMPEG_BEARER_TOKEN"
+        )
+        print(f"Authentication failed. Check {who}.\n  Detail: {e}", file=sys.stderr)
+        return "", ""
+    except openai.APIConnectionError as e:
+        target = cfg.base_url or "https://api.openai.com/v1"
+        print(
+            f"Could not connect to {target}. Is the server running? Try /ping, or check --url / WTFFMPEG_LLM_API_URL.\n"
+            f"  Detail: {e}",
+            file=sys.stderr,
+        )
+        return "", ""
     except Exception as e:
-        print(f"Error during model inference: {e}", file=sys.stderr)
+        print(f"Error during model inference: {type(e).__name__}: {e}", file=sys.stderr)
         return "", ""
 
 
