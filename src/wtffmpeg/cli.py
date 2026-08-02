@@ -106,13 +106,12 @@ def main() -> None:
             print(f"  {n}")
         raise SystemExit(0)
 
-    client = build_client(cfg)
-
     if cfg.prompt_once is not None:
+        client = build_client(cfg)
         rc = single_shot(client=client, cfg=cfg)
         raise SystemExit(rc)
 
-    repl(client=client, cfg=cfg)
+    repl(cfg=cfg)
 
 
 if __name__ == "__main__":

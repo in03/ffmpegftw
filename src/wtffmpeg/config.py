@@ -85,6 +85,13 @@ def normalize_base_url(url: str) -> str:
     return url
 
 
+def normalize_provider(provider: str) -> Provider:
+    p = provider.strip().lower()
+    if p not in ("openai", "compat"):
+        raise ValueError(f"Invalid provider '{provider}'. Expected 'openai' or 'compat'.")
+    return p  # type: ignore[return-value]
+
+
 def _coerce_value(key: str, raw: str) -> Any:
     v = raw.strip()
     if v.lower() in ("none", "null"):
@@ -165,7 +172,7 @@ def apply_overrides(cfg: AppConfig, overrides: dict[str, Any]) -> AppConfig:
 
     # provider should be a valid Literal
     if "provider" in updates and updates["provider"] is not None:
-        updates["provider"] = str(updates["provider"]).lower()
+        updates["provider"] = normalize_provider(str(updates["provider"]))
 
     return replace(cfg, **updates)
 
@@ -197,11 +204,11 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
     provider: Provider
 
     if provider_arg:
-        provider = str(provider_arg).lower()  # type: ignore[assignment]
+        provider = normalize_provider(str(provider_arg))
     elif provider_env:
-        provider = str(provider_env).lower()  # type: ignore[assignment]
+        provider = normalize_provider(str(provider_env))
     elif provider_file:
-        provider = str(provider_file).lower()  # type: ignore[assignment]
+        provider = normalize_provider(str(provider_file))
     else:
         # use openai if API key set and no explicit compat URL
         if openai_api_key and not getattr(args, "url", None):

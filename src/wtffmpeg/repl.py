@@ -19,9 +19,9 @@ from prompt_toolkit.formatted_text import HTML
 from pygments.lexers.python import PythonLexer
 from pypager.pager import Pager
 from pypager.source import StringSource
-from .runtime import RuntimeState, reconcile_runtime
+from .runtime import RuntimeState, reconcile_runtime, client_fingerprint
 
-from .llm import generate_ffmpeg_command, verify_connection, build_client
+from .llm import generate_ffmpeg_command, verify_connection
 from .config import (
     AppConfig,
     CONFIG_KEYS,
@@ -84,19 +84,21 @@ def _sanitize_cfg(cfg: AppConfig) -> dict:
         "openai_api_key": ("(set)" if cfg.openai_api_key else "(unset)"),
         "bearer_token": ("(set)" if cfg.bearer_token else "(unset)"),
         "context_turns": cfg.context_turns,
-        "profile": resolve_profile(cfg).name,
+        "profile": cfg.profile_name,
         "copy": cfg.copy,
         "no_nag": cfg.no_nag,
     }
 
 
-def _transport_changed(a: AppConfig, b: AppConfig) -> bool:
-    keys = ("provider", "base_url", "openai_api_key", "bearer_token")
-    return any(getattr(a, k) != getattr(b, k) for k in keys)
-
-
-def handle_config_command(cmdline: str, *, session: PromptSession, cfg: AppConfig, client):
-    """Handle '/config ...' commands. Returns (new_cfg, new_client)."""
+def handle_config_command(
+    cmdline: str,
+    *,
+    session: PromptSession,
+    cfg: AppConfig,
+    client,
+    baseline_cfg: AppConfig | None = None,
+):
+    """Handle '/config ...' commands. Returns (new_cfg, client)."""
     parts = shlex.split(cmdline)
     sub = parts[1] if len(parts) > 1 else "show"
 
@@ -182,12 +184,8 @@ USAGE
             updates["profile_name"] = profile_spec
 
         new_cfg = apply_overrides(cfg, updates)
-        new_client = client
-        if _transport_changed(cfg, new_cfg):
-            new_client = build_client(new_cfg)
-
         print("OK")
-        return new_cfg, new_client
+        return new_cfg, client
 
     elif sub == "unset":
         keys = parts[2:]
@@ -206,17 +204,18 @@ USAGE
                 updates[k] = None
 
         new_cfg = apply_overrides(cfg, updates)
-        new_client = client
-        if _transport_changed(cfg, new_cfg):
-            new_client = build_client(new_cfg)
         print("OK")
-        return new_cfg, new_client
+        return new_cfg, client
 
     elif sub == "save":
         path = Path(parts[2]) if len(parts) > 2 else DEFAULT_CONFIG_PATH
         save_config(cfg, path=path, keys=PERSIST_KEYS)
         print(f"Configuration saved to {path}")
         return cfg, client
+
+    elif sub == "reset":
+        print("Configuration reset.")
+        return baseline_cfg or cfg, client
 
     elif sub == "load":
         path = Path(parts[2]) if len(parts) > 2 else DEFAULT_CONFIG_PATH
@@ -232,12 +231,9 @@ USAGE
             data["profile_name"] = profile_spec
 
         new_cfg = apply_overrides(cfg, data)
-        new_client = client
-        if _transport_changed(cfg, new_cfg):
-            new_client = build_client(new_cfg)
 
         print(f"Configuration loaded from {path}")
-        return new_cfg, new_client
+        return new_cfg, client
     else:
         print(f"Unknown /config subcommand: {sub}", file=sys.stderr)
 
@@ -300,7 +296,7 @@ def single_shot(*, client, cfg: AppConfig) -> int:
     return 0
 
 
-def repl(*, client, cfg: AppConfig):
+def repl(*, cfg: AppConfig, client=None):
     def _client_base_url(client) -> str | None:
         for attr in ("base_url", "_base_url"):
             v = getattr(client, attr, None)
@@ -308,8 +304,12 @@ def repl(*, client, cfg: AppConfig):
                 return str(v)
         return None
 
-    rt = RuntimeState()
-    reconcile_runtime(cfg, rt, force=True)
+    startup_cfg = cfg
+    rt = RuntimeState(client=client)
+    if client is not None:
+        rt._client_fp = client_fingerprint(cfg)
+    reconcile_runtime(cfg, rt, force=(client is None))
+    client = rt.client
 
     session = PromptSession(
         history=FileHistory(str(CMD_HISTFILE)),
@@ -329,7 +329,7 @@ def repl(*, client, cfg: AppConfig):
             padding = 1
         return HTML(f"<b>[Mode: {bind_txt}]</b> {' ' * padding} <b>{copy_txt}</b>")
 
-    messages = [{"role": "system", "content": resolve_profile(cfg).text}]
+    messages = [{"role": "system", "content": rt.profile.text if rt.profile else resolve_profile(cfg).text}]
 
     # preload: run once, then drop into repl with prefilled !cmd
     prefill = ""
@@ -355,7 +355,7 @@ def repl(*, client, cfg: AppConfig):
                 default=prefill,
                 lexer=PygmentsLexer(PythonLexer),
                 bottom_toolbar=get_toolbar,
-                rprompt=lambda: f"{resolve_profile(cfg).name} | {cfg.model} |",
+                rprompt=lambda: f"{(rt.profile.name if rt.profile else cfg.profile_name)} | {cfg.model} |",
                 style=matrix_style,
             )
         except (EOFError, KeyboardInterrupt):
@@ -401,13 +401,16 @@ def repl(*, client, cfg: AppConfig):
                 continue
 
             elif cmd == "reset":
-                messages = [{"role": "system", "content": resolve_profile(cfg).text}]
+                messages = [{"role": "system", "content": rt.profile.text if rt.profile else resolve_profile(cfg).text}]
                 print("Conversation history cleared.")
                 continue
 
             elif cmd == "profile":
-                print(f"Current profile: {resolve_profile(cfg).name}")
-                print(resolve_profile(cfg).text)
+                if rt.profile is None:
+                    reconcile_runtime(cfg, rt)
+                if rt.profile is not None:
+                    print(f"Current profile: {rt.profile.name}")
+                    print(rt.profile.text)
                 continue
 
             elif cmd == "profiles":
@@ -422,13 +425,24 @@ def repl(*, client, cfg: AppConfig):
 
             elif cmd.startswith("config"):
                 old_profile = cfg.profile_name
-                cfg, client = handle_config_command(line, session=session, cfg=cfg, client=client)
-                reconcile_runtime(cfg, rt)
-                if cfg.profile_name != old_profile:
-                    messages = [{"role": "system", "content": resolve_profile(cfg).text}]
-                    print("Profile changed; conversation history cleared.")
-                else:
-                    messages[0] = {"role": "system", "content": resolve_profile(cfg).text}
+                try:
+                    cfg, client = handle_config_command(
+                        line,
+                        session=session,
+                        cfg=cfg,
+                        client=client,
+                        baseline_cfg=startup_cfg,
+                    )
+                    reconcile_runtime(cfg, rt)
+                    client = rt.client
+                    if rt.profile is not None:
+                        if cfg.profile_name != old_profile:
+                            messages = [{"role": "system", "content": rt.profile.text}]
+                            print("Profile changed; conversation history cleared.")
+                        else:
+                            messages[0] = {"role": "system", "content": rt.profile.text}
+                except Exception as e:
+                    print(f"/config error: {e}", file=sys.stderr)
                 continue
 
             elif cmd.startswith("bindings"):

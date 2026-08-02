@@ -20,12 +20,8 @@ def client_fingerprint(cfg) -> tuple:
     return (
         cfg.provider,
         cfg.base_url,
-        cfg.model,
-        bool(cfg.openai_api_key),  
-        # cfg.api_key_source
-        # include anything else that affects client construction:
-        getattr(cfg, "timeout_s", None),
-        getattr(cfg, "max_retries", None),
+        cfg.openai_api_key,
+        cfg.bearer_token,
     )
 
 def profile_fingerprint(cfg) -> tuple:
