@@ -21,7 +21,7 @@ from pypager.pager import Pager
 from pypager.source import StringSource
 from .runtime import RuntimeState, reconcile_runtime, client_fingerprint
 
-from .llm import generate_ffmpeg_command, verify_connection
+from .llm import generate_ffmpeg_command, verify_connection, list_models, print_models
 from .config import (
     AppConfig,
     CONFIG_KEYS,
@@ -372,6 +372,8 @@ def repl(*, cfg: AppConfig, client=None):
                 print("  /reset - Clear conversation history (keep system prompt)")
                 print("  /profile - Show current profile")
                 print("  /profiles - List available profiles")
+                print("  /models - List models available from the current provider")
+                print("  /model [name] - Show or set the active model (soft-checked against /models)")
                 print("  /config - View and modify configuration (/config help)")
                 print("  /bindings [vi|emacs] - Switch keybindings")
                 print("  /q|/quit|/exit|/logout - Exit the REPL")
@@ -407,6 +409,32 @@ def repl(*, cfg: AppConfig, client=None):
                 print("Built-in profiles:")
                 for n in avail["builtin"]:
                     print(f"  {n}")
+                continue
+
+            elif cmd == "models":
+                print_models(client, cfg)
+                continue
+
+            elif cmd == "model" or cmd.startswith("model "):
+                # Parse the argument from the original line, not `cmd`, which is
+                # lowercased (model IDs can be case-sensitive).
+                parts_raw = line.strip().split(None, 1)
+                if len(parts_raw) < 2:
+                    print(f"Current model: {cfg.model}")
+                    print("Usage: /model <name>   (alias for /config set model=<name>)")
+                    continue
+                new_model = parts_raw[1].strip()
+                cfg = apply_overrides(cfg, {"model": new_model})
+                print(f"Model set to {new_model}")
+                try:
+                    if new_model not in list_models(client):
+                        print(
+                            f"Warning: '{new_model}' not in the server's model list "
+                            f"(the list may be incomplete).",
+                            file=sys.stderr,
+                        )
+                except Exception:
+                    pass  # soft validation only; listing may be unsupported
                 continue
 
             elif cmd.startswith("config"):

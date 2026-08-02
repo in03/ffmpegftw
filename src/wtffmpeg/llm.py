@@ -1,4 +1,5 @@
 from __future__ import annotations
+import openai
 from openai import OpenAI
 from typing import Tuple
 from pathlib import Path
@@ -27,6 +28,55 @@ def verify_connection(client: OpenAI, base_url: str | None) -> None:
             depth += 1
 
         raise RuntimeError("\n".join(parts)) from e
+
+def list_models(client: OpenAI) -> list[str]:
+    """Return sorted model IDs from the provider. Raises openai errors on failure."""
+    # Iterating the SyncPage walks pagination transparently.
+    return sorted(m.id for m in client.models.list())
+
+
+def print_models(client: OpenAI, cfg: AppConfig) -> int:
+    """List provider models to stdout, marking cfg.model. Returns an exit code."""
+    target = cfg.base_url or "https://api.openai.com/v1"
+    try:
+        ids = list_models(client)
+    except openai.AuthenticationError as e:
+        print(
+            f"Authentication failed listing models at {target}. Check --api-key / "
+            f"WTFFMPEG_OPENAI_API_KEY (openai) or --bearer-token / WTFFMPEG_BEARER_TOKEN (compat).\n"
+            f"  Detail: {e}",
+            file=sys.stderr,
+        )
+        return 1
+    except openai.APIConnectionError as e:
+        print(
+            f"Could not reach {target} to list models. Is the server running? (try /ping)\n  Detail: {e}",
+            file=sys.stderr,
+        )
+        return 1
+    except openai.APIStatusError as e:
+        print(
+            f"This server does not appear to support model listing (GET /v1/models) at {target}: {e}\n"
+            f"Your configured model may still work.",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:
+        print(f"Failed to list models: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
+
+    print(f"Models available at {target}:")
+    for mid in ids:
+        marker = "* " if mid == cfg.model else "  "
+        print(f"  {marker}{mid}")
+    if cfg.model not in ids:
+        print(
+            f"Warning: configured model '{cfg.model}' was not returned by the server "
+            f"(compat model lists can be incomplete).",
+            file=sys.stderr,
+        )
+    return 0
+
 
 def generate_ffmpeg_command(messages: list[dict], client: OpenAI, cfg: AppConfig) -> Tuple[str, str]:
     """Generate a single ffmpeg command from the LLM, and try to strip markdown/commentary."""

@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from .llm import build_client
+from .llm import build_client, print_models
 from .repl import repl, single_shot
 from .config import resolve_config, DEFAULT_CONFIG_PATH
 from .profiles import list_profiles
@@ -87,6 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p.add_argument("--profile", type=str, default=None, help="Profile name or path")
     p.add_argument("--list-profiles", action="store_true", help="List available profiles and exit")
+    p.add_argument("--list-models", action="store_true", help="List models available from the configured provider and exit")
     p.add_argument("--profile-dir", type=Path, default=None, help="Override ~/.wtffmpeg/profiles")
     p.add_argument(
         "--nag",
@@ -119,6 +120,10 @@ def main() -> None:
         for n in avail["builtin"]:
             print(f"  {n}")
         raise SystemExit(0)
+
+    if args.list_models:
+        client = build_client(cfg)
+        raise SystemExit(print_models(client, cfg))
 
     if cfg.prompt_once is not None:
         client = build_client(cfg)

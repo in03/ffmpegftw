@@ -86,13 +86,18 @@ options:
   --bearer-token BEARER_TOKEN
                         Bearer token. Defaults WTFFMPEG_BEARER_TOKEN.
   --url URL             Base URL for OpenAI-compatible API. Defaults WTFFMPEG_LLM_API_URL then http://localhost:11434
+  --provider {openai,compat}
+                        Force provider. Defaults WTFFMPEG_PROVIDER, else inferred (openai if API key set and no URL given; compat otherwise).
   -x, -e, --exec        Execute generated command without confirmation (single-shot only).
-  -c, --copy            Copy every generated command to your system clipboard.
+  -c, --copy, --no-copy
+                        Copy every generated command to your system clipboard. --no-copy overrides a saved copy=true.
+  --nag, --no-nag       Show/hide the reminder banner above every prompt. --no-nag overrides a saved no_nag=true.
   -i, --interactive     (Deprecated) no-op. REPL is now the default.
   --context-turns CONTEXT_TURNS
                         How many prior user/assistant turns to include in REPL requests (0 = stateless).
   --profile PROFILE     Profile name or path
   --list-profiles       List available profiles and exit
+  --list-models         List models available from the configured provider and exit
   --profile-dir PROFILE_DIR
                         Override ~/.wtffmpeg/profiles
 ```
@@ -223,6 +228,8 @@ Available /commands:
   /reset - Clear conversation history (keep system prompt)
   /profile - Show current profile info
   /profiles - List available profiles
+  /models - List models available from the current provider
+  /model [name] - Show or set the active model (soft-checked against /models)
   /config - View and modify configuration (type /config help for details)
   /bindings - List special keybindings (e.g. for Vi/Emacs modes)
   /q|quit|/exit|/logout - Exit the REPL
