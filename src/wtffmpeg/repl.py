@@ -314,7 +314,7 @@ def repl(*, cfg: AppConfig, client=None):
             print("No LLM is configured and nothing answered at http://localhost:11434.")
             print("Quick start:")
             print("  - Local: install and run Ollama (https://ollama.com), e.g. `ollama pull gpt-oss:20b`")
-            print("  - OpenAI: set WTFFMPEG_OPENAI_API_KEY or pass --api-key (default model: gpt-5-mini)")
+            print("  - OpenAI: set WTFFMPEG_OPENAI_API_KEY or pass --api-key (default model: gpt-5.4-mini)")
             print("  - Other OpenAI-compatible server: wtff --url http://host:port [--bearer-token ...]")
             print("Once working, persist your settings with /config save.")
 

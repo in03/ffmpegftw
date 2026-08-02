@@ -1,4 +1,5 @@
 import argparse
+import sys
 from pathlib import Path
 
 from .llm import build_client, print_models
@@ -121,16 +122,20 @@ def main() -> None:
             print(f"  {n}")
         raise SystemExit(0)
 
-    if args.list_models:
-        client = build_client(cfg)
-        raise SystemExit(print_models(client, cfg))
+    try:
+        if args.list_models:
+            client = build_client(cfg)
+            raise SystemExit(print_models(client, cfg))
 
-    if cfg.prompt_once is not None:
-        client = build_client(cfg)
-        rc = single_shot(client=client, cfg=cfg)
-        raise SystemExit(rc)
+        if cfg.prompt_once is not None:
+            client = build_client(cfg)
+            rc = single_shot(client=client, cfg=cfg)
+            raise SystemExit(rc)
 
-    repl(cfg=cfg)
+        repl(cfg=cfg)
+    except RuntimeError as e:
+        print(str(e), file=sys.stderr)
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

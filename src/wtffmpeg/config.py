@@ -12,7 +12,7 @@ Provider = Literal["openai", "compat"]
 
 # Defaults / keys
 DEFAULT_MODEL_COMPAT = "gpt-oss:20b"
-DEFAULT_MODEL_OPENAI = "gpt-5-mini"
+DEFAULT_MODEL_OPENAI = "gpt-5.4-mini"
 DEFAULT_PROFILE_NAME = "minimal"
 
 DEFAULT_CONFIG_PATH = Path.home() / ".wtffmpeg" / "config.env"

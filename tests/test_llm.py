@@ -4,7 +4,7 @@ import httpx
 import openai
 import pytest
 
-from wtffmpeg.llm import generate_ffmpeg_command, list_models, print_models
+from wtffmpeg.llm import build_client, generate_ffmpeg_command, list_models, print_models
 
 
 class FakeModels:
@@ -38,6 +38,12 @@ def _status_error(cls, code):
 
 CFG_COMPAT = SimpleNamespace(model="b-model", provider="compat", base_url="http://h:1/v1")
 CFG_OPENAI = SimpleNamespace(model="gpt-5-mini", provider="openai", base_url=None)
+
+
+def test_build_client_openai_requires_key():
+    cfg = SimpleNamespace(provider="openai", openai_api_key=None, bearer_token=None, base_url=None)
+    with pytest.raises(RuntimeError, match="API key"):
+        build_client(cfg)
 
 
 def test_list_models_sorted():

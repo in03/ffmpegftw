@@ -150,6 +150,12 @@ def generate_ffmpeg_command(messages: list[dict], client: OpenAI, cfg: AppConfig
 
 def build_client(cfg: AppConfig) -> OpenAI:
     if cfg.provider == "openai":
+        if not cfg.openai_api_key:
+            raise RuntimeError(
+                "Provider is 'openai' but no API key is set. "
+                "Pass --api-key, set WTFFMPEG_OPENAI_API_KEY, or switch providers "
+                "with --provider compat / --url."
+            )
         return OpenAI(api_key=cfg.openai_api_key)
     
     api_key = cfg.bearer_token or "ollama"

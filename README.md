@@ -211,7 +211,7 @@ If no arguments are passed on the command-line, default values are used, *unless
 ### Environment Variables
 These will override default values if set. (but themselves can be overridden by command-ling arguments.)
 
-- WTFFMPEG_MODEL: You can (but don't have to) specify a model name here. e.g, llama3, gpt-5-mini, codellama:7b (command-line equivalent is --model)
+- WTFFMPEG_MODEL: You can (but don't have to) specify a model name here. e.g, llama3, gpt-5.4-mini, codellama:7b (command-line equivalent is --model)
 - WTFFMPEG_LLM_API_URL: Base URL for a local or remote OpenAI-compatible API
 Defaults to ollama at http://localhost:11434 (command-line equivalent is --url)
 - WTFFMPEG_OPENAI_API_KEY:  (command-line equivalent is --api-key)

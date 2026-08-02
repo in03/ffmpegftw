@@ -50,7 +50,7 @@ def test_api_key_alone_infers_openai():
     cfg = resolve_config(make_args(api_key="sk-x"), config_path=NOPATH)
     assert cfg.provider == "openai"
     assert cfg.base_url is None
-    assert cfg.model == "gpt-5-mini"
+    assert cfg.model == "gpt-5.4-mini"
 
 
 def test_env_url_beats_key_inference(monkeypatch):
