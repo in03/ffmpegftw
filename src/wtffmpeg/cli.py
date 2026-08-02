@@ -54,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Base URL for OpenAI-compatible API. Defaults WTFFMPEG_LLM_API_URL then http://localhost:11434",
     )
+    p.add_argument(
+        "--provider",
+        choices=["openai", "compat"],
+        default=None,
+        help="Force provider. Defaults WTFFMPEG_PROVIDER, else inferred (openai if API key set and no URL given; compat otherwise).",
+    )
 
     p.add_argument(
         "-c",

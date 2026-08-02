@@ -184,7 +184,12 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
     """
     file_cfg = load_config(config_path)
 
-    profile_dir = args.profile_dir or DEFAULT_PROFILE_DIR
+    profile_dir_env = _env_nonempty("WTFFMPEG_PROFILE_DIR")
+    profile_dir = (
+        getattr(args, "profile_dir", None)
+        or (Path(profile_dir_env).expanduser() if profile_dir_env else None)
+        or DEFAULT_PROFILE_DIR
+    )
     profile_spec = (
         getattr(args, "profile", None)
         or _env_nonempty("WTFFMPEG_PROFILE")
@@ -195,10 +200,17 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
 
     openai_api_key = getattr(args, "api_key", None) or _env_nonempty("WTFFMPEG_OPENAI_API_KEY") or file_cfg.get("openai_api_key")
     bearer_token = getattr(args, "bearer_token", None) or _env_nonempty("WTFFMPEG_BEARER_TOKEN") or file_cfg.get("bearer_token")
-    url_raw = getattr(args, "url", None) or _env_nonempty("WTFFMPEG_LLM_API_URL") or file_cfg.get("base_url") or "http://localhost:11434"
+    # A URL explicitly provided from any source is a compat signal; only fall
+    # back to the default localhost URL after inference has run.
+    url_explicit = (
+        getattr(args, "url", None)
+        or _env_nonempty("WTFFMPEG_LLM_API_URL")
+        or file_cfg.get("base_url")
+    )
+    url_raw = url_explicit or "http://localhost:11434"
 
     # provider can be forced by args/provider, otherwise inferred
-    provider_arg = getattr(args, "provider", None) if hasattr(args, "provider") else None
+    provider_arg = getattr(args, "provider", None)
     provider_env = _env_nonempty("WTFFMPEG_PROVIDER")
     provider_file = file_cfg.get("provider")
     provider: Provider
@@ -211,7 +223,7 @@ def resolve_config(args, *, config_path: Path | None = None) -> AppConfig:
         provider = normalize_provider(str(provider_file))
     else:
         # use openai if API key set and no explicit compat URL
-        if openai_api_key and not getattr(args, "url", None):
+        if openai_api_key and not url_explicit:
             provider = "openai"
         else:
             provider = "compat"

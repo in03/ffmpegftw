@@ -211,8 +211,9 @@ These will override default values if set. (but themselves can be overridden by 
 Defaults to ollama at http://localhost:11434 (command-line equivalent is --url)
 - WTFFMPEG_OPENAI_API_KEY:  (command-line equivalent is --api-key)
 - WTFFMPEG_BEARER_TOKEN: Bearer token for other OpenAI-compatible services. (cli ---bearer-token)
+- WTFFMPEG_PROVIDER: Force `openai` or `compat`. If unset, the provider is inferred: `openai` when an API key is set and no URL is given (via cli, env, or config file); `compat` otherwise. (command-line equivalent is --provider)
 - WTFFMPEG_PROFILE:  system prompt profile to use. (Defaults to `minimal`) cli is `--profile`
-- WTFFMPEG_PROFILE_DIR: Alternate directory for your system prompt profiles. (--profile-home)
+- WTFFMPEG_PROFILE_DIR: Alternate directory for your system prompt profiles. (--profile-dir)
 
 ### /slash commands
 ```
